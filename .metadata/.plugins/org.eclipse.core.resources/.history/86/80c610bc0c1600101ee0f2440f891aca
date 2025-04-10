@@ -1,0 +1,16 @@
+/*
+ * stm32f407xx.h
+ *
+ *  Created on: Apr 8, 2025
+ *      Author: nhduong
+ */
+
+#ifndef INC_STM32F407XX_H_
+#define INC_STM32F407XX_H_
+
+/*
+ * Base addresses of Flash and SRAM memories
+ */
+#define FLASH_BASE				0x08000000U	/*!< FLASH(up to 1 MB) base address in the alias region          */
+#define SRAM1_BASE				0x20000000U /!< SRAM1(112 KB) base address in the alias region                              */
+#endif /* INC_STM32F407XX_H_ */

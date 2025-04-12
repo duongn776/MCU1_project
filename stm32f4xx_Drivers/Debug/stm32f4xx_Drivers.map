@@ -53,6 +53,47 @@ Discarded input sections
  .ARM.exidx     0x00000000       0x10 C:/ST/STM32CubeIDE_1.17.0/STM32CubeIDE/plugins/com.st.stm32cube.ide.mcu.externaltools.gnu-tools-for-stm32.12.3.rel1.win32_1.1.0.202410251130/tools/bin/../lib/gcc/arm-none-eabi/12.3.1/../../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/crt0.o
  .ARM.attributes
                 0x00000000       0x20 C:/ST/STM32CubeIDE_1.17.0/STM32CubeIDE/plugins/com.st.stm32cube.ide.mcu.externaltools.gnu-tools-for-stm32.12.3.rel1.win32_1.1.0.202410251130/tools/bin/../lib/gcc/arm-none-eabi/12.3.1/../../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/crt0.o
+ .group         0x00000000        0xc ./Drivers/Src/stm32f407xx_gpio.o
+ .group         0x00000000        0xc ./Drivers/Src/stm32f407xx_gpio.o
+ .group         0x00000000        0xc ./Drivers/Src/stm32f407xx_gpio.o
+ .group         0x00000000        0xc ./Drivers/Src/stm32f407xx_gpio.o
+ .group         0x00000000        0xc ./Drivers/Src/stm32f407xx_gpio.o
+ .group         0x00000000        0xc ./Drivers/Src/stm32f407xx_gpio.o
+ .group         0x00000000        0xc ./Drivers/Src/stm32f407xx_gpio.o
+ .group         0x00000000        0xc ./Drivers/Src/stm32f407xx_gpio.o
+ .group         0x00000000        0xc ./Drivers/Src/stm32f407xx_gpio.o
+ .group         0x00000000        0xc ./Drivers/Src/stm32f407xx_gpio.o
+ .text          0x00000000        0x0 ./Drivers/Src/stm32f407xx_gpio.o
+ .data          0x00000000        0x0 ./Drivers/Src/stm32f407xx_gpio.o
+ .bss           0x00000000        0x0 ./Drivers/Src/stm32f407xx_gpio.o
+ .text.GPIO_ClockControl
+                0x00000000      0x1d0 ./Drivers/Src/stm32f407xx_gpio.o
+ .text.GPIO_Init
+                0x00000000      0x330 ./Drivers/Src/stm32f407xx_gpio.o
+ .debug_info    0x00000000      0x56d ./Drivers/Src/stm32f407xx_gpio.o
+ .debug_abbrev  0x00000000       0xfc ./Drivers/Src/stm32f407xx_gpio.o
+ .debug_aranges
+                0x00000000       0x28 ./Drivers/Src/stm32f407xx_gpio.o
+ .debug_rnglists
+                0x00000000       0x1b ./Drivers/Src/stm32f407xx_gpio.o
+ .debug_macro   0x00000000       0xbb ./Drivers/Src/stm32f407xx_gpio.o
+ .debug_macro   0x00000000      0xac0 ./Drivers/Src/stm32f407xx_gpio.o
+ .debug_macro   0x00000000      0x189 ./Drivers/Src/stm32f407xx_gpio.o
+ .debug_macro   0x00000000       0x22 ./Drivers/Src/stm32f407xx_gpio.o
+ .debug_macro   0x00000000       0x8e ./Drivers/Src/stm32f407xx_gpio.o
+ .debug_macro   0x00000000       0x51 ./Drivers/Src/stm32f407xx_gpio.o
+ .debug_macro   0x00000000      0x103 ./Drivers/Src/stm32f407xx_gpio.o
+ .debug_macro   0x00000000       0x6a ./Drivers/Src/stm32f407xx_gpio.o
+ .debug_macro   0x00000000      0x1df ./Drivers/Src/stm32f407xx_gpio.o
+ .debug_macro   0x00000000      0x746 ./Drivers/Src/stm32f407xx_gpio.o
+ .debug_macro   0x00000000       0xc4 ./Drivers/Src/stm32f407xx_gpio.o
+ .debug_line    0x00000000      0x8dc ./Drivers/Src/stm32f407xx_gpio.o
+ .debug_str     0x00000000     0x66c3 ./Drivers/Src/stm32f407xx_gpio.o
+ .comment       0x00000000       0x44 ./Drivers/Src/stm32f407xx_gpio.o
+ .debug_frame   0x00000000       0x60 ./Drivers/Src/stm32f407xx_gpio.o
+ .ARM.attributes
+                0x00000000       0x34 ./Drivers/Src/stm32f407xx_gpio.o
+ .group         0x00000000        0xc ./Src/main.o
  .group         0x00000000        0xc ./Src/main.o
  .group         0x00000000        0xc ./Src/main.o
  .group         0x00000000        0xc ./Src/main.o
@@ -65,6 +106,16 @@ Discarded input sections
  .text          0x00000000        0x0 ./Src/main.o
  .data          0x00000000        0x0 ./Src/main.o
  .bss           0x00000000        0x0 ./Src/main.o
+ .debug_macro   0x00000000      0xac0 ./Src/main.o
+ .debug_macro   0x00000000       0x22 ./Src/main.o
+ .debug_macro   0x00000000       0x8e ./Src/main.o
+ .debug_macro   0x00000000       0x51 ./Src/main.o
+ .debug_macro   0x00000000      0x103 ./Src/main.o
+ .debug_macro   0x00000000       0x6a ./Src/main.o
+ .debug_macro   0x00000000      0x1df ./Src/main.o
+ .debug_macro   0x00000000      0x189 ./Src/main.o
+ .debug_macro   0x00000000      0x746 ./Src/main.o
+ .debug_macro   0x00000000       0xc4 ./Src/main.o
  .group         0x00000000        0xc ./Src/syscalls.o
  .group         0x00000000        0xc ./Src/syscalls.o
  .group         0x00000000        0xc ./Src/syscalls.o
@@ -507,6 +558,7 @@ Linker script and memory map
 LOAD C:/ST/STM32CubeIDE_1.17.0/STM32CubeIDE/plugins/com.st.stm32cube.ide.mcu.externaltools.gnu-tools-for-stm32.12.3.rel1.win32_1.1.0.202410251130/tools/bin/../lib/gcc/arm-none-eabi/12.3.1/thumb/v7e-m+fp/hard/crti.o
 LOAD C:/ST/STM32CubeIDE_1.17.0/STM32CubeIDE/plugins/com.st.stm32cube.ide.mcu.externaltools.gnu-tools-for-stm32.12.3.rel1.win32_1.1.0.202410251130/tools/bin/../lib/gcc/arm-none-eabi/12.3.1/thumb/v7e-m+fp/hard/crtbegin.o
 LOAD C:/ST/STM32CubeIDE_1.17.0/STM32CubeIDE/plugins/com.st.stm32cube.ide.mcu.externaltools.gnu-tools-for-stm32.12.3.rel1.win32_1.1.0.202410251130/tools/bin/../lib/gcc/arm-none-eabi/12.3.1/../../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/crt0.o
+LOAD ./Drivers/Src/stm32f407xx_gpio.o
 LOAD ./Src/main.o
 LOAD ./Src/syscalls.o
 LOAD ./Src/sysmem.o
@@ -815,26 +867,17 @@ LOAD C:/ST/STM32CubeIDE_1.17.0/STM32CubeIDE/plugins/com.st.stm32cube.ide.mcu.ext
  .debug_rnglists
                 0x00000013       0x19 ./Startup/startup_stm32f407vgtx.o
 
-.debug_macro    0x00000000     0x1848
- .debug_macro   0x00000000       0xb2 ./Src/main.o
- .debug_macro   0x000000b2      0xac0 ./Src/main.o
- .debug_macro   0x00000b72       0x22 ./Src/main.o
- .debug_macro   0x00000b94       0x8e ./Src/main.o
- .debug_macro   0x00000c22       0x51 ./Src/main.o
- .debug_macro   0x00000c73      0x103 ./Src/main.o
- .debug_macro   0x00000d76       0x6a ./Src/main.o
- .debug_macro   0x00000de0      0x1df ./Src/main.o
- .debug_macro   0x00000fbf      0x189 ./Src/main.o
- .debug_macro   0x00001148      0x700 ./Src/main.o
+.debug_macro    0x00000000       0xbb
+ .debug_macro   0x00000000       0xbb ./Src/main.o
 
 .debug_line     0x00000000      0x542
  .debug_line    0x00000000      0x4c7 ./Src/main.o
  .debug_line    0x000004c7       0x7b ./Startup/startup_stm32f407vgtx.o
 
-.debug_str      0x00000000     0x5ce2
- .debug_str     0x00000000     0x5ca3 ./Src/main.o
-                               0x5e6d (size before relaxing)
- .debug_str     0x00005ca3       0x3f ./Startup/startup_stm32f407vgtx.o
+.debug_str      0x00000000     0x62cc
+ .debug_str     0x00000000     0x628d ./Src/main.o
+                               0x6457 (size before relaxing)
+ .debug_str     0x0000628d       0x3f ./Startup/startup_stm32f407vgtx.o
                                  0x72 (size before relaxing)
 
 .comment        0x00000000       0x43

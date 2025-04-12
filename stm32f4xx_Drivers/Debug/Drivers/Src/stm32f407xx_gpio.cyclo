@@ -1,0 +1,2 @@
+../Drivers/Src/stm32f407xx_gpio.c:16:6:GPIO_ClockControl	20
+../Drivers/Src/stm32f407xx_gpio.c:51:6:GPIO_Init	14

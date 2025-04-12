@@ -1,0 +1,71 @@
+/*
+ * stm32f407xx_gpio.c
+ *
+ *  Created on: Apr 12, 2025
+ *      Author: nhduong
+ */
+
+#include "stm32f407xx_gpio.h"
+
+/**
+ * @brief  Enables or disables the clock for the specified GPIO peripheral.
+ * @param  pGPIOx: Pointer to GPIO peripheral base address (e.g., GPIOA, GPIOB).
+ * @param  State: ENABLE or DISABLE.
+ * @retval None
+ */
+void GPIO_ClockControl(GPIO_RegDef_t *pGPIOx, uint8_t State)
+{
+    if(State == ENABLE)
+    {
+        if(pGPIOx == GPIOA) { GPIOA_CLK_EN(); }
+        else if (pGPIOx == GPIOB) { GPIOB_CLK_EN(); }
+        else if (pGPIOx == GPIOC) { GPIOC_CLK_EN(); }
+        else if (pGPIOx == GPIOD) { GPIOD_CLK_EN(); }
+        else if (pGPIOx == GPIOE) { GPIOE_CLK_EN(); }
+        else if (pGPIOx == GPIOF) { GPIOF_CLK_EN(); }
+        else if (pGPIOx == GPIOG) { GPIOG_CLK_EN(); }
+        else if (pGPIOx == GPIOH) { GPIOH_CLK_EN(); }
+        else if (pGPIOx == GPIOI) { GPIOI_CLK_EN(); }
+    }
+    else
+    {
+        if(pGPIOx == GPIOA) { GPIOA_CLK_DIS(); }
+        else if (pGPIOx == GPIOB) { GPIOB_CLK_DIS(); }
+        else if (pGPIOx == GPIOC) { GPIOC_CLK_DIS(); }
+        else if (pGPIOx == GPIOD) { GPIOD_CLK_DIS(); }
+        else if (pGPIOx == GPIOE) { GPIOE_CLK_DIS(); }
+        else if (pGPIOx == GPIOF) { GPIOF_CLK_DIS(); }
+        else if (pGPIOx == GPIOG) { GPIOG_CLK_DIS(); }
+        else if (pGPIOx == GPIOH) { GPIOH_CLK_DIS(); }
+        else if (pGPIOx == GPIOI) { GPIOI_CLK_DIS(); }
+    }
+}
+
+
+/**
+  * @brief  Initializes the GPIOx peripheral according to the specified parameters in the GPIO_Init.
+  * @param  GPIOx where x can be (A..K) to select the GPIO peripheral for STM32F429X device or
+  *                      x can be (A..I) to select the GPIO peripheral for STM32F40XX and STM32F427X devices.
+  * @param  GPIO_Init pointer to a GPIO_InitTypeDef structure that contains
+  *         the configuration information for the specified GPIO peripheral.
+  * @retval None
+  */
+void GPIO_Init(GPIO_Handle_t *hGPIO);
+void GPIO_DeInit(GPIO_RegDef_t *pGPIOx);
+
+/*
+ * Data read and write
+ */
+uint8_t GPIO_ReadPin(GPIO_RegDef_t *pGPIOx, uint8_t GPIO_Pin);
+uint16_t GPIO_ReadPort(GPIO_RegDef_t *pGPIOx);
+void GPIO_WritePin(GPIO_RegDef_t *pGPIOx, uint8_t GPIO_Pin, uint8_t Value);
+void GPIO_WritePort(GPIO_RegDef_t *pGPIOx, uint16_t Value);
+void GPIO_TogglePin(GPIO_RegDef_t *pGPIOx, uint8_t GPIO_Pin);
+
+/*
+ * IRQ Configuration and ISR handling
+ */
+void GPIO_IRQInterruptConfig(uint8_t IRQNumber, uint8_t State);
+void GPIO_IRQPriorityConfig(uint8_t IRQNumber, uint32_t IRQPriority);
+void GPIO_IRQHandler(uint8_t GPIO_Pin);
+

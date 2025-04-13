@@ -16,10 +16,49 @@
  ******************************************************************************
  */
 
-#include <stdint.h>
 #include "stm32f407xx.h"
+#include "string.h"
+#define BTN_PRESSED  1
+void delay(void)
+{
+    for(uint32_t i = 0 ; i < 500000 / 2; i ++);
+}
+
 int main(void)
 {
-    /* Loop forever */
-	for(;;);
+
+    GPIO_HandleTypeDef GpioLed, GPIOBtn;
+    memset(&GpioLed,0,sizeof(GpioLed));
+    memset(&GPIOBtn,0,sizeof(GPIOBtn));
+
+    GpioLed.pGPIOx = GPIOD;
+    GpioLed.Init.Pin = GPIO_PIN_13;
+    GpioLed.Init.Mode = GPIO_MODE_OUTPUT;
+    GpioLed.Init.Speed = GPIO_SPEED_FREQ_HIGH;
+    GpioLed.Init.OPType = GPIO_OUTPUT_TYPE_PP;
+    GpioLed.Init.Pull = GPIO_NOPULL;
+
+    GPIO_Init(&GpioLed);
+
+    // this is btn gpio configuration
+    GPIOBtn.pGPIOx = GPIOA;
+    GPIOBtn.Init.Pin = GPIO_PIN_0;
+    GPIOBtn.Init.Mode = GPIO_MODE_IT_RISING;
+    GPIOBtn.Init.Pull = GPIO_NOPULL;
+
+    GPIO_Init(&GPIOBtn);
+    GPIO_WritePin(GPIOD, GPIO_PIN_12, GPIO_PIN_RESET);
+
+    //IRQ configurations
+    GPIO_IRQPriorityConfig(EXTI0_IRQn, IRQ_PRIORITY_15);
+    GPIO_IRQInterruptConfig(EXTI0_IRQn, ENABLE);
+    while(1);
+    return 0;
+}
+
+void EXTI0_IRQHandler(void)
+{
+	delay();
+	GPIO_IRQHandler(GPIO_PIN_0);
+	GPIO_TogglePin(GPIOD, GPIO_PIN_13);
 }

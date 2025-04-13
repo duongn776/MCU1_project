@@ -47,15 +47,13 @@
 #define NO_PR_BITS_IMPLEMENTED  4
 
 /*
- * base addresses of Flash and SRAM memories
+ * Base addresses of Flash and SRAM memories
  */
-
-#define FLASH_BASE                      0x08000000U         /*!<explain this macro briefly here  */
-#define SRAM1_BASE                      0x20000000U         /*!<explain this macro briefly here  */
-#define SRAM2_BASE                      0x2001C000U         /*!<explain this macro briefly here  */
-#define ROM_BASE                        0x1FFF0000U
-#define SRAM                            SRAM1_BASE
-
+#define FLASH_BASE      0x08000000U    /*!< Base address of Flash memory  */
+#define SRAM1_BASE      0x20000000U    /*!< Base address of SRAM1 with 112KB */
+#define SRAM2_BASE      0x2001C000U    /*!< Base address of SRAM2 = SRAM1_BASE + 112*1024 */
+#define ROM_BASE        0x1FFF0000U    /*!< Base address of system ROM  */
+#define SRAM            SRAM1_BASE     /*!< Alias for SRAM1 */
 
 /*
  * AHBx and APBx Bus Peripheral base addresses
@@ -412,39 +410,47 @@ typedef struct
                                 (x == GPIOI)?8: 0)
 
 /*
- * IRQ(Interrupt Request) Numbers of STM32F407x MCU
- * NOTE: update these macros with valid values according to your MCU
+ * IRQ Number Definitions for External Interrupts (EXTI)
  */
+#define EXTI0_IRQn      6
+#define EXTI1_IRQn      7
+#define EXTI2_IRQn      8
+#define EXTI3_IRQn      9
+#define EXTI4_IRQn      10
+#define EXTI9_5_IRQn    23
+#define EXTI15_10_IRQn  40
 
-#define IRQ_NO_EXTI0        6
-#define IRQ_NO_EXTI1        7
-#define IRQ_NO_EXTI2        8
-#define IRQ_NO_EXTI3        9
-#define IRQ_NO_EXTI4        10
-#define IRQ_NO_EXTI9_5      23
-#define IRQ_NO_EXTI15_10    40
-#define IRQ_NO_SPI1         35
-#define IRQ_NO_SPI2         36
-#define IRQ_NO_SPI3         51
-#define IRQ_NO_I2C1_EV      31
-#define IRQ_NO_I2C1_ER      32
-#define IRQ_NO_USART1       37
-#define IRQ_NO_USART2       38
-#define IRQ_NO_USART3       39
-#define IRQ_NO_UART4        52
-#define IRQ_NO_UART5        53
-#define IRQ_NO_USART6       71
+/*
+ * IRQ Number Definitions for Peripherals
+ */
+#define SPI1_IRQn           35
+#define SPI2_IRQn           36
+#define SPI3_IRQn           51
+#define I2C1_EV_IRQn      	31
+#define I2C1_ER_IRQn      	32
+#define USART1_IRQn       	37
+#define USART2_IRQn       	38
+#define USART3_IRQn       	39
+#define UART4_IRQn        	52
+#define UART5_IRQn        	53
+#define USART6_IRQn       	71
 
 
 /*
- * macros for all the possible priority levels
+ * Macros for all the possible priority levels
  */
-#define NVIC_IRQ_PRI0     0
-#define NVIC_IRQ_PRI15    15
+#define IRQ_PRIORITY_0     0
+#define IRQ_PRIORITY_1     1
+#define IRQ_PRIORITY_2     2
+#define IRQ_PRIORITY_3     3
+#define IRQ_PRIORITY_4     4
+#define IRQ_PRIORITY_5     5
+#define IRQ_PRIORITY_6     6
+#define IRQ_PRIORITY_7     7
+#define IRQ_PRIORITY_15    15
 
 
-//some generic macros
-
+// Some generic macros
 #define ENABLE              1
 #define DISABLE             0
 #define SET                 ENABLE

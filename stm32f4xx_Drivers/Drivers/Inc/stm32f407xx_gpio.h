@@ -79,8 +79,8 @@ typedef struct
 /**
   * @def GPIO_optype_define GPIO output type define
   */
-#define  GPIO_OPTYPE_PP                    0       /*!< Output Push Pull Mode                 */
-#define  GPIO_OPTYPE_OD                    1       /*!< Output Open Drain Mode                */
+#define  GPIO_OUTPUT_TYPE_PP                    0       /*!< Output Push Pull Mode                 */
+#define  GPIO_OUTPUT_TYPE_OD                    1       /*!< Output Open Drain Mode                */
 
 /**
   * @def GPIO_speed_define  GPIO speed define
@@ -113,8 +113,8 @@ void GPIO_DeInit(GPIO_TypeDef *pGPIOx);
  */
 uint8_t GPIO_ReadPin(GPIO_TypeDef *pGPIOx, uint8_t GPIO_Pin);
 uint16_t GPIO_ReadPort(GPIO_TypeDef *pGPIOx);
-void GPIO_WritePin(GPIO_TypeDef *pGPIOx, uint8_t GPIO_Pin, uint8_t Value);
-void GPIO_WritePort(GPIO_TypeDef *pGPIOx, uint16_t Value);
+void GPIO_WritePin(GPIO_TypeDef *pGPIOx, uint8_t GPIO_Pin, uint8_t PinState);
+void GPIO_WritePort(GPIO_TypeDef *pGPIOx, uint16_t PinState);
 void GPIO_TogglePin(GPIO_TypeDef *pGPIOx, uint8_t GPIO_Pin);
 
 /*

@@ -10,7 +10,7 @@
 /**
  * @brief  Enables or disables the clock for the specified GPIO peripheral.
  *
- * @param  pGPIOx pGPIOx where x can be (A..I) to select the GPIO peripheral
+ * @param  pGPIOx where x can be (A..I) to select the GPIO peripheral
  *
  * @param  State: ENABLE or DISABLE.
  *

@@ -1,0 +1,95 @@
+/*
+ * stm32f407xx_spi.c
+ *
+ *  Created on: Apr 17, 2025
+ *      Author: nhduong
+ */
+
+#include "stm32f407xx_spi.h"
+
+/**
+ * @brief  Enables or disables the clock for the specified SPIx peripheral.
+ *
+ * @param  pGPIOx where x can be (1,2 or 3) to select the SPI peripheral
+ *
+ * @param  State: ENABLE or DISABLE.
+ *
+ * @retval None
+ */
+void SPI_PeriClockControl(SPI_TypeDef *pSPIx, uint8_t State)
+{
+	if (State == ENABLE)
+	{
+		if (pSPIx == SPI1)
+		{
+			SPI1_CLK_EN();
+		}else if (pSPIx == SPI2)
+		{
+			SPI2_CLK_EN();
+		}else {
+			SPI3_CLK_EN();
+		}
+	}else {
+		if (pSPIx == SPI1)
+		{
+			SPI1_CLK_DIS();
+		}else if (pSPIx == SPI2)
+		{
+			SPI2_CLK_DIS();
+		}else {
+			SPI3_CLK_DIS();
+		}
+	}
+}
+/**
+  * @brief  Initialize the SPI according to the specified parameters
+  *         in the SPI_InitTypeDef and initialize the associated handle.
+  *
+  * @param  hspi pointer to a SPI_HandleTypeDef structure that contains
+  *               the configuration information for SPI module.
+  *
+  * @retval None
+  */
+void SPI_Init(SPI_HandleTypeDef *hspi)
+{
+	uint32_t tempreg = 0;
+
+	// Enable the SPI peripheral clock
+	SPI_PeriClockControl(hspi->pSPIx, ENABLE);
+
+	// Configure the devide mode (Master/Slave)
+	tempreg |= hspi->Init.Mode << SPI_CR1_MSTR;
+
+	// Configure the bus config
+	if (hspi->Init.Direction == SPI_DIRECTION_FULLDUPLEX)
+	{
+		// bidi mode should be cleared
+		tempreg &= ~(1 << SPI_CR1_BIDIMODE);
+	}else if (hspi->Init.Direction == SPI_DIRECTION_HALFDUPLEX)
+	{
+		// bidi mode should be set
+		tempreg |= (1 << SPI_CR1_BIDIMODE);
+	}else {
+		// Bidi mode should be cleared
+		tempreg &= ~(1 << SPI_CR1_BIDIMODE);
+
+		// RXONLY bit must be set
+		tempreg |= (1 << SPI_CR1_RXONLY);
+	}
+
+	// Configure the baud rate prescaler
+	tempreg |= hspi->Init.BaudRatePrescaler << SPI_CR1_BR;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+

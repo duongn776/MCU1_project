@@ -1,0 +1,189 @@
+/*
+ * stm32f407xx_spi.c
+ *
+ *  Created on: Apr 17, 2025
+ *      Author: nhduong
+ */
+
+#include "stm32f407xx_spi.h"
+
+/**
+ * @brief  Enables or disables the clock for the specified SPIx peripheral.
+ *
+ * @param  pGPIOx where x can be (1,2 or 3) to select the SPI peripheral
+ *
+ * @param  State: ENABLE or DISABLE.
+ *
+ * @retval None
+ */
+void SPI_PeriClockControl(SPI_TypeDef *pSPIx, uint8_t State)
+{
+	if (State == ENABLE)
+	{
+		if (pSPIx == SPI1)
+		{
+			SPI1_CLK_EN();
+		}else if (pSPIx == SPI2)
+		{
+			SPI2_CLK_EN();
+		}else {
+			SPI3_CLK_EN();
+		}
+	}else {
+		if (pSPIx == SPI1)
+		{
+			SPI1_CLK_DIS();
+		}else if (pSPIx == SPI2)
+		{
+			SPI2_CLK_DIS();
+		}else {
+			SPI3_CLK_DIS();
+		}
+	}
+}
+/**
+  * @brief  Initialize the SPI according to the specified parameters
+  *         in the SPI_InitTypeDef and initialize the associated handle.
+  *
+  * @param  hspi pointer to a SPI_HandleTypeDef structure that contains
+  *               the configuration information for SPI module.
+  *
+  * @retval None
+  */
+void SPI_Init(SPI_HandleTypeDef *hspi)
+{
+	uint32_t tempreg = 0;
+
+	// 1. Enable the SPI peripheral clock
+	SPI_PeriClockControl(hspi->pSPIx, ENABLE);
+
+	// 2. Disable the SPI peripheral before configuring it
+	hspi->pSPIx->CR1 &= ~(1 << SPI_CR1_SPE);
+
+	// 3. Configure device mode (Master/Slave)
+	tempreg |= hspi->Init.Mode << SPI_CR1_MSTR;
+
+	// 4. Configure bus configuration (Full-Duplex, Half-Duplex, or Simplex RX-only)
+	if (hspi->Init.Direction == SPI_DIRECTION_FULLDUPLEX)
+	{
+		// Clear BIDIMODE for full-duplex
+		tempreg &= ~(1 << SPI_CR1_BIDIMODE);
+	}
+	else if (hspi->Init.Direction == SPI_DIRECTION_HALFDUPLEX)
+	{
+		// Set BIDIMODE for half-duplex
+		tempreg |= (1 << SPI_CR1_BIDIMODE);
+	}
+	else // SPI_DIRECTION_SIMPLEX_RXONLY
+	{
+		// Clear BIDIMODE and set RXONLY for simplex RX-only
+		tempreg &= ~(1 << SPI_CR1_BIDIMODE);
+		tempreg |= (1 << SPI_CR1_RXONLY);
+	}
+
+	// 5. Set the Baud Rate Prescaler
+	tempreg |= hspi->Init.BaudRatePrescaler << SPI_CR1_BR;
+
+	// 6. Configure Data Frame Format (8-bit or 16-bit)
+	tempreg |= hspi->Init.DataSize << SPI_CR1_DFF;
+
+	// 7. Set Clock Polarity (CPOL)
+	tempreg |= hspi->Init.CLKPolarity << SPI_CR1_CPOL;
+
+	// 8. Set Clock Phase (CPHA)
+	tempreg |= hspi->Init.CLKPhase << SPI_CR1_CPHA;
+
+	// 9. Configure NSS management (Software or Hardware)
+	if (hspi->Init.NSS == SPI_NSS_SOFT)
+	{
+		// Enable Software Slave Management
+		tempreg |= (1 << SPI_CR1_SSM);
+
+		// Set SSI bit to avoid MODF error when SSM is enabled
+		tempreg |= (1 << SPI_CR1_SSI);
+	}
+	else // SPI_NSS_HARD
+	{
+		// Disable Software Slave Management
+		tempreg &= ~(1 << SPI_CR1_SSM);
+
+		// Enable NSS output (SSOE = 1) in CR2 for master hardware mode
+		hspi->pSPIx->CR2 |= (1 << SPI_CR2_SSOE);
+	}
+
+	// 10. Write final configuration to CR1 register
+	hspi->pSPIx->CR1 = tempreg;
+
+	// 11. Enable SPI peripheral
+	hspi->pSPIx->CR1 |= (1 << SPI_CR1_SPE);
+}
+
+
+/**
+  * @brief  De-Initialize the SPI peripheral.
+  *
+  * @param  pSPIx pointer to a SPI_TypeDef structure that contains
+  *               the configuration information for SPI module.
+  *
+  * @retval None
+  */
+void SPI_DeInit(SPI_TypeDef *pSPIx)
+{
+	if (pSPIx == SPI1)
+	{
+		SPI1_REG_RESET();
+	}else if (pSPIx == SPI2)
+	{
+		SPI2_REG_RESET();
+	}else if (pSPIx == SPI3)
+	{
+		SPI3_REG_RESET();
+	}
+}
+
+/**
+  * @brief  Transmit an amount of data in blocking mode.
+  *
+  * @param  hspi pointer to a SPI_HandleTypeDef structure that contains
+  *               the configuration information for SPI module.
+  *
+  * @param  pData pointer to data buffer (u8 or u16 data elements)
+  *
+  * @param  Length amount of data elements (u8 or u16) to be sent
+  *
+  * @retval None
+  */
+void SPI_Transmit(SPI_TypeDef *pSPIx,uint8_t *pData, uint32_t Len)
+{
+	while (Len > 0)
+	{
+		// wait until TXE is set
+		while(SPI_GetFlag(pSPIx, SPI_FLAG_TXE) == FLAG_RESET);
+
+		// check the DFF bit in CR1
+		if ((pSPIx->CR1 & (1 << SPI_CR1_DFF)))
+		{
+			// 16 bit
+			// load the data into DR register
+			pSPIx->DR = *((uint16_t*)pData);
+			Len -= 2;
+			pData += 2;
+		}else {
+			// 8 bit
+			// load data into DR register
+			pSPIx->DR = *pData;
+		}
+	}
+}
+void SPI_Receive(SPI_TypeDef *pSPIx, uint8_t *pRxBuffer, uint32_t Len);
+
+
+
+
+
+
+
+
+
+
+

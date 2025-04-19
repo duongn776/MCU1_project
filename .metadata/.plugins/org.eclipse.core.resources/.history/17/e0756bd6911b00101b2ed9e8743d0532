@@ -1,0 +1,14 @@
+/*
+ * stm32f407xx_spi.c
+ *
+ *  Created on: Apr 17, 2025
+ *      Author: nhduong
+ */
+
+#include "stm32f407xx_spi.h"
+
+
+void SPI_PeriClockControl(SPI_TypeDef *pSPIx, uint8_t State)
+{
+
+}

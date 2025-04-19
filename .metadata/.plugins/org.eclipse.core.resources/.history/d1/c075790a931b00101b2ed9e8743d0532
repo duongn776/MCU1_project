@@ -1,0 +1,44 @@
+/*
+ * stm32f407xx_spi.c
+ *
+ *  Created on: Apr 17, 2025
+ *      Author: nhduong
+ */
+
+#include "stm32f407xx_spi.h"
+
+
+/**
+ * @brief  Enables or disables the clock for the specified GPIO peripheral.
+ *
+ * @param  pGPIOx pGPIOx where x can be (A..I) to select the GPIO peripheral
+ *
+ * @param  State: ENABLE or DISABLE.
+ *
+ * @retval None
+ */
+void SPI_PeriClockControl(SPI_TypeDef *pSPIx, uint8_t State)
+{
+	if (State == ENABLE)
+	{
+		if (pSPIx == SPI1)
+		{
+			SPI1_CLK_EN();
+		}else if (pSPIx == SPI2)
+		{
+			SPI2_CLK_EN();
+		}else {
+			SPI3_CLK_EN();
+		}
+	}else {
+		if (pSPIx == SPI1)
+		{
+			SPI1_CLK_DIS();
+		}else if (pSPIx == SPI2)
+		{
+			SPI2_CLK_DIS();
+		}else {
+			SPI3_CLK_DIS();
+		}
+	}
+}

@@ -1,0 +1,795 @@
+/*
+ * stm32f407xx_i2c.c
+ *
+ *  Created on: Apr 23, 2025
+ *      Author: nhduong
+ */
+#include "stm32f407xx_i2c.h"
+
+/**
+  * @def I2C_Private_Functions I2C Private Functions
+  */
+static void I2C_GenerateStart(I2C_TypeDef *pI2Cx);
+static void I2C_GenerateStop(I2C_TypeDef *pI2Cx);
+static void I2C_MasterRequestWrite(I2C_TypeDef *pI2Cx, uint8_t DevAddress);
+static void I2C_MasterRequestRead(I2C_TypeDef *pI2Cx, uint8_t DevAddress);
+static void I2C_Clear_ADDRFlag(I2C_HandleTypeDef *hi2c);
+static void I2C_Enable_IT(I2C_TypeDef *hi2c);
+static void I2C_Disable_IT(I2C_TypeDef *pI2Cx);
+static void I2C_MasterTransmit_TXE(I2C_HandleTypeDef *hi2c);
+static void I2C_MasterTransmit_BTF(I2C_HandleTypeDef *hi2c);
+static void I2C_MasterReceive_RXNE(I2C_HandleTypeDef *hi2c);
+static void I2C_MasterReceive_BTF(I2C_HandleTypeDef *hi2c);
+static void I2C_Master_SB(I2C_HandleTypeDef *hi2c);
+static void I2C_CloseTransmit(I2C_HandleTypeDef *hi2c);
+static void I2C_CloseReceive(I2C_HandleTypeDef *hi2c);
+/**
+  * @brief  Enable or disable the clock for the specified I2C peripheral.
+  *
+  * @param  pI2Cx Pointer to the I2C peripheral base address (I2C1, I2C2, or I2C3).
+  *
+  * @param  State ENABLE to enable clock, DISABLE to disable clock.
+  *
+  * @retval None
+  */
+void I2C_PeriClockControl(I2C_TypeDef *pI2Cx, uint8_t State)
+{
+	if (State == ENABLE)
+	{
+		if (pI2Cx == I2C1)
+		{
+			I2C1_CLK_EN();
+		}else if (pI2Cx == I2C2)
+		{
+			I2C2_CLK_EN();
+		}else {
+			I2C3_CLK_EN();
+		}
+	}else {
+		if (pI2Cx == I2C1)
+		{
+			I2C1_CLK_DIS();
+		}else if (pI2Cx == I2C2) {
+			I2C2_CLK_DIS();
+		}else {
+			I2C3_CLK_DIS();
+		}
+	}
+}
+
+/**
+  * @brief  Initialize the I2C according to the specified parameters
+  *         in the I2C_InitTypeDef and initialize the associated handle.
+  *
+  * @param  hi2c pointer to a I2C_HandleTypeDef structure that contains
+  *               the configuration information for I2C module.
+  *
+  * @retval None
+  */
+void I2C_Init(I2C_HandleTypeDef *hi2c)
+{
+	uint32_t tempreg = 0;
+
+	// enable clock for I2Cx
+	I2C_PeriClockControl(hi2c->pI2Cx, ENABLE);
+
+
+	// ack control bit
+	tempreg |= hi2c->Init.AckControl << I2C_CR1_ACK;
+	hi2c->pI2Cx->CR1 = tempreg;
+
+	// configure the FREQ field of CR2
+	tempreg = 0;
+	tempreg |= RCC_GetPCLK1Value() / 1000000U;
+	hi2c->pI2Cx->CR2 = (tempreg & 0x3F);
+
+	// program the device own address
+	tempreg = 0;
+	tempreg |= hi2c->Init.DeviceAddress << 1;
+	tempreg |= 1 << 14;
+	hi2c->pI2Cx->OAR1 = tempreg;
+
+	// CCR calculations
+	uint16_t CCR_Value = 0;
+	tempreg = 0;
+
+	if (hi2c->Init.ClockSpeed <= I2C_CLOCKSPEED_SM)
+	{
+		// standard mode
+		CCR_Value = (RCC_GetPCLK1Value() / (2 * hi2c->Init.ClockSpeed));
+	}else {
+		// fast mode
+		tempreg |= (1 << I2C_CCR_FS);
+		tempreg |= (hi2c->Init.DutyCycle << I2C_CCR_DUTY);
+		if (hi2c->Init.DutyCycle == I2C_DUTYCYCLE_2)
+		{
+			CCR_Value = (RCC_GetPCLK1Value() / (3 * hi2c->Init.ClockSpeed));
+		}else {
+			CCR_Value = (RCC_GetPCLK1Value() / (25 * hi2c->Init.ClockSpeed));
+		}
+	}
+	tempreg |= (CCR_Value & 0xFFF);
+	hi2c->pI2Cx->CCR = tempreg;
+
+	// TRISE configuration
+	if (hi2c->Init.ClockSpeed <= I2C_CLOCKSPEED_SM)
+	{
+		// standard mode
+		tempreg = (RCC_GetPCLK1Value() / 1000000) + 1;
+	}else {
+		// fast mode
+		tempreg = ((RCC_GetPCLK1Value() * 300) / 1000000000) + 1;
+	}
+	hi2c->pI2Cx->TRISE = (tempreg & 0x3F);
+
+	I2C_PeripheralControl(hi2c->pI2Cx, ENABLE);
+}
+
+/**
+  * @brief  De-Initialize the I2C peripheral.
+  *
+  * @param  pI2Cx pointer to a I2C_TypeDef structure that contains
+  *               the configuration information for I2C module.
+  *
+  * @retval None
+  */
+void I2C_DeInit(I2C_TypeDef *pI2Cx)
+{
+	if (pI2Cx == I2C1)
+	{
+		I2C1_REG_RESET();
+	}else if (pI2Cx == I2C2) {
+		I2C2_REG_RESET();
+	}else {
+		I2C3_REG_RESET();
+	}
+}
+
+/**
+  * @brief  Get the flag status the I2C peripheral
+  *
+  *
+  * @param  pI2Cx Pointer to the I2C peripheral base address.
+  *
+  * @param  FlagName Specific flag to check (SB, ADDR, BTF, STOPF, TXE, RXNE,..)
+  *
+  * @retval FLAG_SET or FLAG_RESET
+  */
+uint8_t I2C_GetFlagStatus(I2C_TypeDef *pI2Cx , uint32_t FlagName)
+{
+	if ((pI2Cx->SR1) & FlagName)
+	{
+		return FLAG_SET;
+	}
+	return FLAG_RESET;
+}
+
+/**
+  * @brief  Enable or disable the I2C peripheral.
+  *
+  * @param  pI2Cx Pointer to the I2C peripheral base address.
+  *
+  * @param  State Set to ENABLE or DISABLE.
+  *
+  * @retval None
+  */
+void I2C_PeripheralControl(I2C_TypeDef *pI2Cx, uint8_t State)
+{
+	if (State == ENABLE)
+	{
+		pI2Cx->CR1 |= (1 << I2C_CR1_PE);
+	}else {
+		pI2Cx->CR1 &= ~(1 << I2C_CR1_PE);
+	}
+}
+
+/**
+  * @brief  ack or nack the I2C peripheral.
+  *
+  * @param  pI2Cx Pointer to the I2C peripheral base address.
+  *
+  * @param  State Set to ENABLE or DISABLE.
+  *
+  * @retval None
+  */
+void I2C_ManageAcking(I2C_TypeDef *pI2Cx, uint8_t State)
+{
+	if (State == I2C_ACK_ENABLE)
+	{
+		pI2Cx->CR1 |= (1 << I2C_CR1_ACK);
+	}else {
+		pI2Cx->CR1 &= ~(1 << I2C_CR1_ACK);
+	}
+}
+
+/**
+  * @brief  Transmits data in master mode in blocking mode.
+  *
+  * @param  hi2c Pointer to an I2C_HandleTypeDef structure containing configuration info for the I2C.
+  *
+  * @param  pTxbuffer Pointer to the data buffer to be transmitted.
+  *
+  * @param  Len Number of bytes to be transmitted.
+  *
+  * @param  DevAddress Target device address (7-bit address as per datasheet).
+  *
+  * @param  Sr Repeat START condition flag (I2C_DISABLE_SR or I2C_ENABLE_SR).
+  *
+  * @retval None
+  */
+void I2C_Master_Transmit(I2C_HandleTypeDef *hi2c, uint8_t *pTxbuffer, uint32_t Len, uint8_t DevAddress, uint8_t Sr)
+{
+	// Generate START
+	I2C_GenerateStart(hi2c->pI2Cx);
+
+	// Wait until SB flag is set
+	while (!(I2C_GetFlagStatus(hi2c->pI2Cx, I2C_FLAG_SB)));
+
+	// Send slave address
+	I2C_MasterRequestWrite(hi2c->pI2Cx, DevAddress);
+
+	// Wait until ADDR flag is set
+	while (!(I2C_GetFlagStatus(hi2c->pI2Cx, I2C_FLAG_ADDR)));
+
+	// Clear ADDR Flag
+	I2C_Clear_ADDRFlag(hi2c);
+
+	// Send data byte by byte
+	while (Len > 0)
+	{
+		// Wait until TXE flag is set
+		while (!(I2C_GetFlagStatus(hi2c->pI2Cx, I2C_FLAG_TXE)));
+
+		// Write data to DR
+		hi2c->pI2Cx->DR = *pTxbuffer;
+
+		// Increment Buffer pointer
+		pTxbuffer++;
+
+		// Decrement Len
+		Len--;
+	}
+
+	// Wait TXE = 1 and BTF = 1 before generating STOP
+	while (!(I2C_GetFlagStatus(hi2c->pI2Cx, I2C_FLAG_TXE)));
+
+	while (!(I2C_GetFlagStatus(hi2c->pI2Cx, I2C_FLAG_BTF)));
+
+	// Generate STOP
+	if (Sr == I2C_DISABLE_SR)
+	{
+		I2C_GenerateStop(hi2c->pI2Cx);
+	}
+}
+
+/**
+  * @brief  Receives in master mode an amount of data in blocking mode.
+  *
+  * @param  hi2c Pointer to an I2C_HandleTypeDef structure containing configuration info for the I2C.
+  *
+  * @param  pRxBuffer Pointer to the data buffer to be transmitted.
+  *
+  * @param  Len Number of bytes to be transmitted.
+  *
+  * @param  DevAddress Target device address (7-bit address as per datasheet).
+  *
+  * @param  Sr Repeat START condition flag (I2C_DISABLE_SR or I2C_ENABLE_SR).
+  *
+  * @retval None
+  */
+void I2C_Master_Receive(I2C_HandleTypeDef *hi2c, uint8_t *pRxBuffer, uint32_t Len, uint8_t DevAddress,uint8_t Sr)
+{
+	// Generate START
+	I2C_GenerateStart(hi2c->pI2Cx);
+
+	// Wait until SB flag is set
+	while (!(I2C_GetFlagStatus(hi2c->pI2Cx, I2C_FLAG_SB)));
+
+	// Send slave address
+	I2C_MasterRequestRead(hi2c->pI2Cx, DevAddress);
+
+	// Wait until ADDR flag is set
+	while (!(I2C_GetFlagStatus(hi2c->pI2Cx, I2C_FLAG_ADDR)));
+
+
+	// Procedure to read only 1 byte from Slave
+	if (Len == 1)
+	{
+		// disable ack
+		I2C_ManageAcking(hi2c->pI2Cx, I2C_ACK_DISABLE);
+
+		// Clear ADDR flag
+		I2C_Clear_ADDRFlag(hi2c);
+
+		// Wait until RXNE is set
+		while (!(I2C_GetFlagStatus(hi2c->pI2Cx, I2C_FLAG_RXNE)));
+
+		// generate STOP
+		if (Sr == I2C_DISABLE_SR)
+		{
+			I2C_GenerateStop(hi2c->pI2Cx);
+		}
+	}
+
+	// Procedure to read data from Slave when Len > 1
+	if (Len > 1)
+	{
+		I2C_Clear_ADDRFlag(hi2c);
+
+
+		// read data until Len becomes 0
+		for (uint32_t i = Len; i > 0; i--)
+		{
+			// Wait until RXNE is set
+			while (!(I2C_GetFlagStatus(hi2c->pI2Cx, I2C_FLAG_RXNE)));
+
+			if (i == 2) // last 2 bytes
+			{
+				// Disable ack
+				I2C_ManageAcking(hi2c->pI2Cx, I2C_ACK_DISABLE);
+
+				// Generate STOP
+				I2C_GenerateStop(hi2c->pI2Cx);
+			}
+
+			// Read data from DR
+			*pRxBuffer = hi2c->pI2Cx->DR;
+
+			// Increment Buffer pointer
+			pRxBuffer++;
+		}
+	}
+
+	// Re-enable ACK
+	if (hi2c->Init.AckControl == I2C_ACK_ENABLE)
+	{
+		I2C_ManageAcking(hi2c->pI2Cx, I2C_ACK_ENABLE);
+	}
+
+}
+
+/**
+  * @brief  Transmit in master mode an amount of data in non-blocking mode with Interrupt
+  *
+  * @param  hi2c Pointer to a I2C_HandleTypeDef structure that contains
+  *                the configuration information for the specified I2C.
+  *
+  * @param  DevAddress Target device address: The device 7 bits address value
+  *         in datasheet
+  *
+  * @param  pTxbuffer Pointer to data buffer
+  *
+  * @param  Size Amount of data to be sent
+  *
+  * @retval state
+  */
+uint8_t I2C_Master_Transmit_IT(I2C_HandleTypeDef *hi2c, uint8_t *pTxbuffer, uint32_t Len, uint8_t DevAddress, uint8_t Sr)
+{
+	uint8_t state = hi2c->State;
+
+	if ((state != I2C_STATE_BUSY_TX) && (state != I2C_STATE_BUSY_RX))
+	{
+		// prepare transfer parameters
+		hi2c->pTxBuff = pTxbuffer;
+		hi2c->TxLen = Len;
+		hi2c->State = I2C_STATE_BUSY_TX;
+		hi2c->DevAddr = DevAddress;
+		hi2c->Sr = Sr;
+
+		// Generate START
+		I2C_GenerateStart(hi2c->pI2Cx);
+
+		// Enable IT
+		I2C_Enable_IT(hi2c->pI2Cx);
+	}
+	return state;
+}
+
+/**
+  * @brief  Receive in master mode an amount of data in non-blocking mode with Interrupt
+  *
+  * @param  hi2c Pointer to a I2C_HandleTypeDef structure that contains
+  *                the configuration information for the specified I2C.
+  *
+  * @param  DevAddress Target device address: The device 7 bits address value
+  *         in datasheet
+  *
+  * @param  pRxBuffer Pointer to data buffer
+  *
+  * @param  Size Amount of data to be sent
+  *
+  * @retval state
+  */
+uint8_t I2C_Master_Receive_IT(I2C_HandleTypeDef *hi2c, uint8_t *pRxBuffer, uint32_t Len, uint8_t DevAddress,uint8_t Sr)
+{
+	uint8_t state = hi2c->State;
+
+	if ((state != I2C_STATE_BUSY_TX) && (state != I2C_STATE_BUSY_RX))
+	{
+		// prepare transfer parameters
+		hi2c->pRxBuff = pRxBuffer;
+		hi2c->RxLen = Len;
+		hi2c->State = I2C_STATE_BUSY_RX;
+		hi2c->DevAddr = DevAddress;
+		hi2c->Sr = Sr;
+
+		// Generate START
+		I2C_GenerateStart(hi2c->pI2Cx);
+
+		// Enable IT
+		I2C_Enable_IT(hi2c->pI2Cx);
+	}
+	return state;
+}
+
+
+
+
+
+
+/**
+  * @brief  Enables or disables a specific interrupt in the NVIC.
+  *
+  * @param  IRQNumber IRQ number for the EXTI line or peripheral interrupt.
+  *         (e.g., EXTI0_IRQn, EXTI1_IRQn, USART1_IRQn, etc.)
+  *
+  * @param  State ENABLE or DISABLE.
+  *
+  * @retval None
+  */
+void I2C_IRQInterruptConfig(uint8_t IRQNumber, uint8_t State)
+{
+	if (State == ENABLE)
+	{
+		if (IRQNumber <= 31)
+		{
+			// program ISER0 register
+			*NVIC_ISER0 |= (1 << IRQNumber);
+		}else if (IRQNumber > 31 && IRQNumber < 64)
+		{
+			*NVIC_ISER1 |= (1 << (IRQNumber % 32));
+		}else if (IRQNumber >= 64 && IRQNumber < 96)
+		{
+			*NVIC_ISER2 |= (1 << (IRQNumber % 64));
+		}
+	}else {
+		if (IRQNumber <= 31)
+		{
+			*NVIC_ICER0 |= (1 << IRQNumber);
+		}else if (IRQNumber > 31 && IRQNumber < 64)
+		{
+			*NVIC_ICER1 |= (1 << (IRQNumber % 32));
+		}else if (IRQNumber >= 64 && IRQNumber < 96)
+		{
+			*NVIC_ICER2 |= (1 << (IRQNumber % 64));
+		}
+	}
+}
+
+/**
+  * @brief  Sets the priority of a given interrupt in the NVIC.
+  *
+  * @param  IRQNumber IRQ number to configure (e.g., EXTI0_IRQn).
+  *
+  * @param  IRQPriority Priority level (0 = highest, larger = lower priority).
+  *
+  * @retval None
+  */
+void I2C_IRQPriorityConfig(uint8_t IRQNumber, uint32_t IRQPriority)
+{
+	// Each NVIC_IPR register holds 4 IRQs, and each priority field is 8 bits wide (only top bits used)
+	uint8_t ipr_index = IRQNumber / 4; // Which IPR register
+	uint8_t ipr_section = IRQNumber % 4; // Which section inside the IPR register
+
+	uint8_t shift_amount = (8 * ipr_section) + (8 - NO_PR_BITS_IMPLEMENTED);
+	*(NVIC_PR_BASE + ipr_index) |= (IRQPriority << shift_amount);
+}
+
+
+/**
+  * @brief  This function handles I2C event interrupt request.
+  *
+  * @param  hi2c Pointer to a I2C_HandleTypeDef structure that contains
+  *                the configuration information for the specified I2C.
+  *
+  * @retval None
+  */
+void I2C_EV_IRQHandler(I2C_HandleTypeDef *hi2c)
+{
+	uint32_t itsource1, itsource2, sr1_itflag;
+
+	itsource1 = hi2c->pI2Cx->CR2 & (1 << I2C_CR2_ITEVTEN);
+	itsource2 = hi2c->pI2Cx->CR2 & (1 << I2C_CR2_ITBUFEN);
+
+	sr1_itflag = hi2c->pI2Cx->SR1 & (1 << I2C_SR1_SB);
+
+	// SB set
+	if (itsource1 && sr1_itflag) {
+		// handle SB
+		I2C_Master_SB(hi2c);
+	}
+
+	sr1_itflag = hi2c->pI2Cx->SR1 & (1 << I2C_SR1_ADDR);
+
+	// ADDR set
+	if (itsource1 && sr1_itflag)
+	{
+		// handle ADDR
+		I2C_Clear_ADDRFlag(hi2c);
+	}
+
+	sr1_itflag = hi2c->pI2Cx->SR1 & (1 << I2C_SR1_BTF);
+
+	// BTF set
+	if (itsource1 && sr1_itflag)
+	{
+		if (hi2c->State == I2C_STATE_BUSY_TX)
+		{
+			// handle BTF
+			I2C_MasterTransmit_BTF(hi2c);
+		}else if (hi2c->State == I2C_STATE_BUSY_RX)
+		{
+			/* Nothing to do */
+		}
+	}
+
+	sr1_itflag = hi2c->pI2Cx->SR1 & (1 << I2C_SR1_STOPF);
+
+	// STOPF set
+	if (itsource1 && sr1_itflag)
+	{
+		// handle STOPF
+		I2C_Slave_STOPF(hi2c);
+	}
+
+	sr1_itflag = hi2c->pI2Cx->SR1 & (1 << I2C_SR1_TXE);
+
+	// TXE set
+	if (itsource1 && itsource2 && sr1_itflag)
+	{
+		// check for device
+		if (hi2c->pI2Cx->SR2 & (1 << I2C_SR2_MSL))
+		{
+			// TXE set
+			if (hi2c->State == I2C_STATE_BUSY_TX)
+			{
+				// handle TXE
+				I2C_MasterTransmit_TXE(hi2c);
+			}
+		}else {
+			// slave
+			if (hi2c->pI2Cx->SR2 & (1 << I2C_SR2_TRA))
+			{
+				// call application
+				I2C_ApplicationEventCallback(hi2c, I2C_EV_DATA_REQ);
+			}
+		}
+	}
+
+}
+void I2C_ER_IRQHandler(I2C_HandleTypeDef *hi2c);
+
+
+/*
+ * Application callback
+ */
+void I2C_ApplicationEventCallback(I2C_HandleTypeDef *hi2c, uint8_t AppEv);
+
+
+// private function
+
+/**
+  * @brief  I2C Generate start condition
+  * @param  pI2Cx Pointer to a I2C_TypeDef structure that contains
+  *         the configuration information for I2C module
+  * @retval None
+  */
+static void I2C_GenerateStart(I2C_TypeDef *pI2Cx)
+{
+	pI2Cx->CR1 |= (1 << I2C_CR1_START);
+}
+
+/**
+  * @brief  I2C Generate stop condition
+  *
+  * @param  pI2Cx Pointer to a I2C_TypeDef structure that contains
+  *         the configuration information for I2C module
+  *
+  * @retval None
+  */
+static void I2C_GenerateStop(I2C_TypeDef *pI2Cx)
+{
+	pI2Cx->CR1 |= (1 << I2C_CR1_STOP);
+}
+
+/**
+  * @brief  I2C Master request write
+  *
+  * @param  pI2Cx Pointer to a I2C_TypeDef structure that contains
+  *         the configuration information for I2C module
+  *
+  * @param  DevAddress Target device address: The device 7 bits address value
+  *         in datasheet
+  *
+  * @retval None
+  */
+static void I2C_MasterRequestWrite(I2C_TypeDef *pI2Cx, uint8_t DevAddress)
+{
+	DevAddress = DevAddress << 1;
+	DevAddress &= ~(1); // write
+	pI2Cx->DR = DevAddress;
+}
+
+/**
+  * @brief  I2C Master request read
+  *
+  * @param  pI2Cx Pointer to a I2C_TypeDef structure that contains
+  *         the configuration information for I2C module
+  *
+  * @param  DevAddress Target device address: The device 7 bits address value
+  *         in datasheet
+  *
+  * @retval None
+  */
+static void I2C_MasterRequestRead(I2C_TypeDef *pI2Cx, uint8_t DevAddress)
+{
+	DevAddress = DevAddress << 1;
+	DevAddress |= 1; // read
+	pI2Cx->DR = DevAddress;
+}
+
+/**
+  * @brief  I2C Clear ADDR Flag
+  *
+  * @param  hi2c Pointer to a I2C_HandleTypeDef structure that contains
+  *         the configuration information for I2C module
+  *
+  * @param  DevAddress Target device address: The device 7 bits address value
+  *         in datasheet
+  *
+  * @retval None
+  */
+static void I2C_Clear_ADDRFlag(I2C_HandleTypeDef *hi2c)
+{
+	uint32_t dummy_read;
+	//check for device mode
+	if(hi2c->pI2Cx->SR2 & ( 1 << I2C_SR2_MSL))
+	{
+		//device is in master mode
+		if(hi2c->State == I2C_STATE_BUSY_RX)
+		{
+			if(hi2c->RxSize  == 1)
+			{
+				//first disable the ack
+				I2C_ManageAcking(hi2c->pI2Cx,DISABLE);
+
+				//clear the ADDR flag ( read SR1 , read SR2)
+				dummy_read = hi2c->pI2Cx->SR1;
+				dummy_read = hi2c->pI2Cx->SR2;
+				(void)dummy_read;
+			}
+
+		}
+		else
+		{
+			//clear the ADDR flag ( read SR1 , read SR2)
+			dummy_read = hi2c->pI2Cx->SR1;
+			dummy_read = hi2c->pI2Cx->SR2;
+			(void)dummy_read;
+
+		}
+
+	}
+	else
+	{
+		//device is in slave mode
+		//clear the ADDR flag ( read SR1 , read SR2)
+		dummy_read = hi2c->pI2Cx->SR1;
+		dummy_read = hi2c->pI2Cx->SR2;
+		(void)dummy_read;
+	}
+}
+
+/**
+  * @brief  I2C Enable EVT, BUF and ERR interrupt
+  *
+  * @param  hi2c Pointer to a I2C_HandleTypeDef structure that contains
+  *         the configuration information for I2C module
+  *
+  * @retval None
+  */
+static void I2C_Enable_IT(I2C_TypeDef *pI2Cx)
+{
+	// Enable ITBUFEN Control bit
+	pI2Cx->CR2 |= (1 << I2C_CR2_ITBUFEN);
+
+	// Enable ITEVTEN Control bit
+	pI2Cx->CR2 |= (1 << I2C_CR2_ITEVTEN);
+
+	// Enable ITERREN Control bit
+	pI2Cx->CR2 |= (1 << I2C_CR2_ITERREN);
+}
+
+/**
+  * @brief  I2C Disable EVT, BUF and ERR interrupt
+  *
+  * @param  hi2c Pointer to a I2C_HandleTypeDef structure that contains
+  *         the configuration information for I2C module
+  *
+  * @retval None
+  */
+static void I2C_Disable_IT(I2C_TypeDef *pI2Cx)
+{
+	// Enable ITBUFEN Control bit
+	pI2Cx->CR2 &= ~(1 << I2C_CR2_ITBUFEN);
+
+	// Enable ITEVTEN Control bit
+	pI2Cx->CR2 &= ~(1 << I2C_CR2_ITEVTEN);
+}
+
+/**
+  * @brief  Handle SB flag for Master
+  *
+  * @param  hi2c Pointer to a I2C_HandleTypeDef structure that contains
+  *         the configuration information for I2C module
+  *
+  * @retval None
+  */
+static void I2C_Master_SB(I2C_HandleTypeDef *hi2c)
+{
+	if (hi2c->State == I2C_STATE_BUSY_TX)
+	{
+		// send slave for write
+		I2C_MasterRequestWrite(hi2c->pI2Cx, hi2c->DevAddr);
+	}else {
+		// send slave for read
+		I2C_MasterRequestRead(hi2c->pI2Cx, hi2c->DevAddr);
+	}
+}
+
+/**
+  * @brief  Handle BTF flag for Master transmitter
+  * @param  hi2c Pointer to a I2C_HandleTypeDef structure that contains
+  *         the configuration information for I2C module
+  * @retval None
+  */
+static void I2C_MasterTransmit_BTF(I2C_HandleTypeDef *hi2c)
+{
+	if (hi2c->pI2Cx->SR1 & (1 << I2C_SR1_TXE))
+	{
+		if (hi2c->TxLen == 0)
+		{
+			// Generate STOP
+			if (hi2c->Sr == I2C_DISABLE_SR)
+			{
+				I2C_GenerateStop(hi2c->pI2Cx);
+			}
+
+			// reset all the member of the elements
+			I2C_CloseTransmit(hi2c);
+
+			// Call application about transmission complte
+			I2C_ApplicationEventCallback(hi2c, I2C_EV_TX_CMPLT);
+		}
+	}
+
+}
+
+/**
+  * @brief  Handle TXE flag for Master
+  *
+  * @param  hi2c Pointer to a I2C_HandleTypeDef structure that contains
+  *         the configuration information for I2C module
+  *
+  * @retval None
+  */
+static void I2C_MasterTransmit_TXE(I2C_HandleTypeDef *hi2c)
+{
+
+}
+
+static void I2C_MasterReceive_RXNE(I2C_HandleTypeDef *hi2c);
+static void I2C_MasterReceive_BTF(I2C_HandleTypeDef *hi2c);
+
+static void I2C_CloseTransmit(I2C_HandleTypeDef *hi2c);
+static void I2C_CloseReceive(I2C_HandleTypeDef *hi2c);

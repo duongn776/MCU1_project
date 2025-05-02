@@ -1,0 +1,26 @@
+/*
+ * stm32f407xx_i2c.h
+ *
+ *  Created on: Apr 10, 2025
+ *      Author: nhduo
+ */
+
+#ifndef INC_STM32F407XX_I2C_H_
+#define INC_STM32F407XX_I2C_H_
+
+#include "stm32f407xx.h"
+
+/*
+ * @brief I2C Configuration Structure
+ */
+typedef struct
+{
+	uint32_t ClockSpeed; 	/*!< Speicifies the clock frequency.
+								 This parameter can be a value of @ref I2C_clock_speed				*/
+
+	uint8_t DutyCycle;		/*!< Specifies the I2C fast mode duty cycle.
+								 This parameter can be a value of @ref @I2C_duty_cycle_in_fast_mode */
+
+	uint8_t DeviceAddress;
+};
+#endif /* INC_STM32F407XX_I2C_H_ */

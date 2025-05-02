@@ -1,0 +1,171 @@
+/*
+ * stm32f407xx_i2c.h
+ *
+ *  Created on: Apr 10, 2025
+ *      Author: nhduo
+ */
+
+#ifndef INC_STM32F407XX_I2C_H_
+#define INC_STM32F407XX_I2C_H_
+
+#include "stm32f407xx.h"
+
+/*
+ * @brief I2C Configuration Structure
+ */
+typedef struct
+{
+	uint32_t ClockSpeed; 	/*!< Speicifies the clock frequency.
+								 This parameter can be a value of @ref I2C_clock_speed				*/
+
+	uint8_t DutyCycle;		/*!< Specifies the I2C fast mode duty cycle.
+								 This parameter can be a value of @ref @I2C_duty_cycle_in_fast_mode */
+
+	uint8_t DeviceAddress;	/*!< Specifies the device own address.
+								 This parameter can be a 7-bit or 10-bit address.					*/
+
+	uint8_t AckControl;		/*!< Specifies the ack control.
+								 This parameter can be a value of @ref I2C_Ack_cotrol				*/
+
+}I2C_InitTypeDef;
+
+/**
+  * @brief  I2C handle Structure definition
+  */
+typedef struct
+{
+	I2C_TypeDef			*I2Cx;			/*!< I2C register base address					*/
+
+	I2C_InitTypeDef		Init;			/*!< I2C communication parameters				*/
+
+	uint8_t				*pTxBuff;		/*!< Pointer to I2C transfer transmit buffer	*/
+
+	uint32_t			TxLen;			/*!< I2C transfer transmit length				*/
+
+	uint8_t				*pRxBuff;		/*!< Pointer to I2C transfer receive buffer		*/
+
+	uint32_t			RxLen;			/*!< I2C transfer receive length				*/
+
+	uint8_t				State;			/*!< I2C transfer state							*/
+
+	uint32_t			RxSize;			/*!< I2C transfer size							*/
+
+	uint8_t				DevAddr;		/*!< I2C slave address							*/
+
+	uint8_t 			Sr;				/*!< I2C repeated start							*/
+
+}I2C_HandleTypeDef;
+
+
+/**
+  * @def I2C application states
+  */
+#define I2C_STATE_READY 			0
+#define I2C_STATE_BUSY_RX 			1
+#define I2C_STATE_BUSY_TX 			2
+
+/**
+  * @def I2C_Clock_speed I2C ack control
+  */
+#define I2C_CLOCKSPEED_SM 		100000
+#define I2C_CLOCKSPEED_FM2K  	200000
+#define I2C_CLOCKSPEED_FM4K 	400000
+
+
+/**
+  * @def I2C_Ack_control I2C ack control
+  */
+#define I2C_ACK_DISABLE       0
+#define I2C_ACK_ENABLE        1
+
+
+
+/**
+  * @def I2C_duty_cycle_in_fast_mode I2C duty cycle in fast mode
+  */
+#define I2C_DUTYCYCLE_2                 0
+#define I2C_DUTYCYCLE_16_9              1
+
+
+/*
+ * I2C related status flags definitions
+ */
+#define I2C_FLAG_TXE   		( 1 << I2C_SR1_TXE)
+#define I2C_FLAG_RXNE   	( 1 << I2C_SR1_RXNE)
+#define I2C_FLAG_SB			( 1 << I2C_SR1_SB)
+#define I2C_FLAG_OVR  		( 1 << I2C_SR1_OVR)
+#define I2C_FLAG_AF   		( 1 << I2C_SR1_AF)
+#define I2C_FLAG_ARLO 		( 1 << I2C_SR1_ARLO)
+#define I2C_FLAG_BERR 		( 1 << I2C_SR1_BERR)
+#define I2C_FLAG_STOPF 		( 1 << I2C_SR1_STOPF)
+#define I2C_FLAG_ADD10 		( 1 << I2C_SR1_ADD10)
+#define I2C_FLAG_BTF  		( 1 << I2C_SR1_BTF)
+#define I2C_FLAG_ADDR 		( 1 << I2C_SR1_ADDR)
+#define I2C_FLAG_TIMEOUT 	( 1 << I2C_SR1_TIMEOUT)
+
+#define I2C_DISABLE_SR  	RESET
+#define I2C_ENABLE_SR   	SET
+
+
+/*
+ * I2C application events macros
+ */
+#define I2C_EV_TX_CMPLT  	 	0
+#define I2C_EV_RX_CMPLT  	 	1
+#define I2C_EV_STOP       		2
+#define I2C_ERROR_BERR 	 		3
+#define I2C_ERROR_ARLO  		4
+#define I2C_ERROR_AF    		5
+#define I2C_ERROR_OVR   		6
+#define I2C_ERROR_TIMEOUT 		7
+#define I2C_EV_DATA_REQ         8
+#define I2C_EV_DATA_RCV         9
+
+/*
+ * Peripheral Clock setup
+ */
+void I2C_PeriClockControl(I2C_TypeDef *pI2Cx, uint8_t State);
+
+/*
+ * Init and De-init
+ */
+void I2C_Init(I2C_HandleTypeDef *hi2c);
+void I2C_DeInit(I2C_TypeDef *pI2Cx);
+
+/*
+ * Data Send and Receive
+ */
+void I2C_Master_Transmit(I2C_HandleTypeDef *hi2c, uint8_t *pTxbuffer, uint32_t Len, uint8_t DevAddress,uint8_t Sr);
+void I2C_Master_Receive(I2C_HandleTypeDef *hi2c, uint8_t *pRxBuffer, uint32_t Len, uint8_t DevAddress,uint8_t Sr);
+uint8_t I2C_Master_Transmit_IT(I2C_HandleTypeDef *hi2c, uint8_t *pTxbuffer, uint32_t Len, uint8_t DevAddress,uint8_t Sr);
+uint8_t I2C_Master_Receive_IT(I2C_HandleTypeDef *hi2c, uint8_t *pRxBuffer, uint32_t Len, uint8_t DevAddress,uint8_t Sr);
+
+void I2C_CloseReceiveData(I2C_HandleTypeDef *hi2c);
+void I2C_CloseSendData(I2C_HandleTypeDef *hi2c);
+
+
+void I2C_SlaveSendData(I2C_TypeDef *pI2C,uint8_t data);
+uint8_t I2C_SlaveReceiveData(I2C_TypeDef *pI2C);
+
+/*
+ * IRQ Configuration and ISR handling
+ */
+void I2C_IRQInterruptConfig(uint8_t IRQNumber, uint8_t State);
+void I2C_IRQPriorityConfig(uint8_t IRQNumber, uint32_t IRQPriority);
+void I2C_EV_IRQHandler(I2C_HandleTypeDef *hi2c);
+void I2C_ER_IRQHandler(I2C_HandleTypeDef *hi2c);
+
+
+/*
+ * Other Peripheral Control APIs
+ */
+void I2C_PeripheralControl(I2C_TypeDef *pI2Cx, uint8_t State);
+uint8_t I2C_GetFlagStatus(I2C_TypeDef *pI2Cx , uint32_t FlagName);
+void I2C_ManageAcking(I2C_TypeDef *pI2Cx, uint8_t State);
+void I2C_SlaveEnableDisableCallbackEvents(I2C_TypeDef *pI2Cx,uint8_t State);
+
+/*
+ * Application callback
+ */
+void I2C_ApplicationEventCallback(I2C_HandleTypeDef *hi2c,uint8_t AppEv);
+#endif /* INC_STM32F407XX_I2C_H_ */

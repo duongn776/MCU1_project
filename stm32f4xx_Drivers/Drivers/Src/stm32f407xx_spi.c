@@ -19,7 +19,7 @@ static void SPI_OvrHandle_ISR(SPI_HandleTypeDef *hspi);
 /**
  * @brief  Enables or disables the clock for the specified SPIx peripheral.
  *
- * @param  pGPIOx where x can be (1,2 or 3) to select the SPI peripheral
+ * @param  pSPIx where x can be (1,2 or 3) to select the SPI peripheral
  *
  * @param  State: ENABLE or DISABLE.
  *
@@ -134,6 +134,7 @@ void SPI_DeInit(SPI_TypeDef *pSPIx)
 		SPI3_REG_RESET();
 	}
 }
+
 /**
   * @brief  Enable or disable the SPI peripheral.
   *
@@ -194,6 +195,25 @@ void SPI_SSOEConfig(SPI_TypeDef *pSPIx, uint8_t State)
 	} else {
 		pSPIx->CR2 &= ~(1 << SPI_CR2_SSOE);
 	}
+}
+
+/**
+  * @brief  Get the flag status the SPI peripheral
+  *
+  *
+  * @param  pSPIx Pointer to the SPI peripheral base address.
+  *
+  * @param  FlagName
+  *
+  * @retval FLAG_SET or FLAG_RESET
+  */
+uint8_t SPI_GetFlag(SPI_TypeDef *pSPIx , uint32_t FlagName)
+{
+	if ((pSPIx->SR) & FlagName)
+	{
+		return FLAG_SET;
+	}
+	return FLAG_RESET;
 }
 
 /**

@@ -1,0 +1,71 @@
+/*
+ * stm32f407xx_usart.h
+ *
+ *  Created on: Apr 10, 2025
+ *      Author: nhduong
+ */
+
+#ifndef INC_STM32F407XX_USART_H_
+#define INC_STM32F407XX_USART_H_
+
+/**
+  * @brief USART Init Structure definition
+  */
+typedef struct
+{
+  uint32_t BaudRate;                  /*!< This member configures the UART communication baud rate.
+                                           This parameter can be a value of @ref UART_Baud_Rate 				*/
+
+  uint8_t WordLength;                /*!< Specifies the number of data bits transmitted or received in a frame.
+                                           This parameter can be a value of @ref UART_Word_Length 				*/
+
+  uint8_t StopBits;                  /*!< Specifies the number of stop bits transmitted.
+                                           This parameter can be a value of @ref UART_Stop_Bits 				*/
+
+  uint8_t Parity;                    /*!< Specifies the parity mode.
+                                           This parameter can be a value of @ref UART_Parity
+                                           @note When parity is enabled, the computed parity is inserted
+                                                 at the MSB position of the transmitted data (9th bit when
+                                                 the word length is set to 9 data bits; 8th bit when the
+                                                 word length is set to 8 data bits). 							*/
+
+  uint8_t Mode;                      /*!< Specifies whether the Receive or Transmit mode is enabled or disabled.
+                                           This parameter can be a value of @ref UART_Mode */
+
+  uint8_t HwFlowCtl;                 /*!< Specifies whether the hardware flow control mode is enabled or disabled.
+                                           This parameter can be a value of @ref UART_Hardware_Flow_Control 	*/
+
+  uint8_t OverSampling;              /*!< Specifies whether the Over sampling 8 is enabled or disabled, to achieve higher speed (up to fPCLK/8).
+                                           This parameter can be a value of @ref UART_Over_Sampling 			*/
+
+} USART_InitTypeDef;
+
+/**
+  * @brief  USART handle Structure definition
+  */
+typedef struct
+{
+	USART_TypeDef 		*pUSARTx;		/*!< USART register base address			*/
+
+	USART_InitTypeDef	Init;			/*!< USART communication parameters			*/
+
+	uint8_t				*pTxBuffPtr;	/*!< Pointer to USART Tx transfer buffer	*/
+
+	uint32_t			TxLen;			/*!< USART Tx transfer length				*/
+
+	uint8_t				*pRxBuffPtr;	/*!< Pointer to USART Rx transfer buffer	*/
+
+	uint32_t			RxLen;			/*!< USART Rx transfer length				*/
+
+	uint8_t				TxState;		/*!< USART Tx transfer state				*/
+
+	uint8_t				RxState;		/*!< USART Rx transfer state				*/
+
+}USART_HandleTypeDef;
+
+
+
+
+
+
+#endif /* INC_STM32F407XX_USART_H_ */

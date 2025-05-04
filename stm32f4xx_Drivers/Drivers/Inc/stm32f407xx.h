@@ -304,12 +304,12 @@ typedef struct
 /*
  * Clock Enable Macros for USARTx peripherals
  */
-#define USART1_PCCK_EN() (RCC->APB2ENR |= (1 << 4))
-#define USART2_PCCK_EN() (RCC->APB1ENR |= (1 << 17))
-#define USART3_PCCK_EN() (RCC->APB1ENR |= (1 << 18))
-#define UART4_PCCK_EN()  (RCC->APB1ENR |= (1 << 19))
-#define UART5_PCCK_EN()  (RCC->APB1ENR |= (1 << 20))
-#define USART6_PCCK_EN() (RCC->APB1ENR |= (1 << 5))
+#define USART1_CLK_EN() (RCC->APB2ENR |= (1 << 4))
+#define USART2_CLK_EN() (RCC->APB1ENR |= (1 << 17))
+#define USART3_CLK_EN() (RCC->APB1ENR |= (1 << 18))
+#define UART4_CLK_EN()  (RCC->APB1ENR |= (1 << 19))
+#define UART5_CLK_EN()  (RCC->APB1ENR |= (1 << 20))
+#define USART6_CLK_EN() (RCC->APB1ENR |= (1 << 5))
 
 /*
  * Clock Enable Macros for SYSCFG peripheral
@@ -390,12 +390,12 @@ typedef struct
 /*
  *  Macros to reset USARTx peripherals
  */
-#define USART1_REG_RESET()           do{ (RCC->APB2RSTR |= (1 << 4)); (RCC->APB2RSTR &= ~(1 << 4)); }while(0)  /*!< Reset USART1 */
+#define USART1_REG_RESET()           do{ (RCC->APB2RSTR |= (1 << 4));  (RCC->APB2RSTR &= ~(1 << 4));  }while(0)  /*!< Reset USART1 */
 #define USART2_REG_RESET()           do{ (RCC->APB1RSTR |= (1 << 17)); (RCC->APB1RSTR &= ~(1 << 17)); }while(0)  /*!< Reset USART2 */
 #define USART3_REG_RESET()           do{ (RCC->APB1RSTR |= (1 << 18)); (RCC->APB1RSTR &= ~(1 << 18)); }while(0)  /*!< Reset USART3 */
-#define UART4_REG_RESET()            do{ (RCC->APB1RSTR |= (1 << 19)); (RCC->APB1RSTR &= ~(1 << 19)); }while(0)  /*!< Reset UART4 */
-#define UART5_REG_RESET()            do{ (RCC->APB1RSTR |= (1 << 20)); (RCC->APB1RSTR &= ~(1 << 20)); }while(0)  /*!< Reset UART5 */
-
+#define UART4_REG_RESET()            do{ (RCC->APB1RSTR |= (1 << 19)); (RCC->APB1RSTR &= ~(1 << 19)); }while(0)  /*!< Reset UART4  */
+#define UART5_REG_RESET()            do{ (RCC->APB1RSTR |= (1 << 20)); (RCC->APB1RSTR &= ~(1 << 20)); }while(0)  /*!< Reset UART5  */
+#define USART6_REG_RESET()           do{ (RCC->APB2RSTR |= (1 << 5));  (RCC->APB2RSTR &= ~(1 << 5));  }while(0)  /*!< Reset USART6 */
 /*
  * This macro returns a code( between 0 to 7) for a given GPIO base address(x)
  */
@@ -426,14 +426,14 @@ typedef struct
 #define SPI1_IRQn           35
 #define SPI2_IRQn           36
 #define SPI3_IRQn           51
-#define I2C1_EV_IRQn      	31
-#define I2C1_ER_IRQn      	32
-#define USART1_IRQn       	37
-#define USART2_IRQn       	38
-#define USART3_IRQn       	39
-#define UART4_IRQn        	52
-#define UART5_IRQn        	53
-#define USART6_IRQn       	71
+#define I2C1_EV_IRQn        31
+#define I2C1_ER_IRQn        32
+#define USART1_IRQn         37
+#define USART2_IRQn         38
+#define USART3_IRQn         39
+#define UART4_IRQn          52
+#define UART5_IRQn          53
+#define USART6_IRQn         71
 
 
 /*
@@ -641,7 +641,7 @@ typedef struct
 #include "stm32f407xx_gpio.h"
 #include "stm32f407xx_spi.h"
 #include "stm32f407xx_i2c.h"
-#include "stm32f407xx_usart.h"
+#include <stm32f407xx_usart.h>
 #include "stm32f407xx_rcc.h"
 
 #endif /* INC_STM3F407XX_H_ */

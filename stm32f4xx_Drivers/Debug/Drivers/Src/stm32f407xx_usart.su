@@ -1,0 +1,17 @@
+../Drivers/Src/stm32f407xx_usart.c:25:6:USART_PeriClockControl	16	static
+../Drivers/Src/stm32f407xx_usart.c:78:6:USART_Init	24	static
+../Drivers/Src/stm32f407xx_usart.c:174:6:USART_SetBaudRate	40	static
+../Drivers/Src/stm32f407xx_usart.c:240:6:USART_DeInit	16	static
+../Drivers/Src/stm32f407xx_usart.c:278:6:USART_Transmit	32	static
+../Drivers/Src/stm32f407xx_usart.c:334:6:USART_Receive	32	static
+../Drivers/Src/stm32f407xx_usart.c:394:9:USART_Transmit_IT	32	static
+../Drivers/Src/stm32f407xx_usart.c:430:9:USART_Receive_IT	32	static
+../Drivers/Src/stm32f407xx_usart.c:458:6:USART_IRQInterruptConfig	16	static
+../Drivers/Src/stm32f407xx_usart.c:496:6:USART_IRQPriorityConfig	24	static
+../Drivers/Src/stm32f407xx_usart.c:514:6:USART_IRQHandler	32	static
+../Drivers/Src/stm32f407xx_usart.c:655:13:USART_EndTxTransfer	16	static
+../Drivers/Src/stm32f407xx_usart.c:688:13:USART_TxTransfer	24	static
+../Drivers/Src/stm32f407xx_usart.c:737:13:USART_RxTransfer	16	static
+../Drivers/Src/stm32f407xx_usart.c:820:9:USART_GetFlagStatus	16	static
+../Drivers/Src/stm32f407xx_usart.c:838:6:USART_PeripheralControl	16	static
+../Drivers/Src/stm32f407xx_usart.c:858:13:USART_ApplicationEventCallback	16	static

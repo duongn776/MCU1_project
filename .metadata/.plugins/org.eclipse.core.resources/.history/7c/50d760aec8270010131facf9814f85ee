@@ -1,0 +1,20 @@
+/*
+ * stm32f407xx_usart.h
+ *
+ *  Created on: Apr 10, 2025
+ *      Author: nhduong
+ */
+
+#ifndef INC_STM32F407XX_USART_H_
+#define INC_STM32F407XX_USART_H_
+
+/*
+ * @brief USART Configuration Structure
+ */
+typedef struct
+{
+	uint32_t BaudRate;			/*!< This member confirues the UART communication baud rate.
+									 This parameter can be a value of @ref UART_
+}USRT_InitTypeDef;
+
+#endif /* INC_STM32F407XX_USART_H_ */

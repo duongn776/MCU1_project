@@ -1,0 +1,608 @@
+/*
+ * stm32f407xx_usart.c
+ *
+ *  Created on: May 3, 2025
+ *      Author: nhduong
+ */
+
+#include <stm32f407xx_usart.h>
+
+/**
+  * @def USART_Private_Functions USART Private Functions
+  */
+static void USART_EndTxTransfer(USART_HandleTypeDef *huart);
+static void USART_TxTransfer(USART_HandleTypeDef *huart);
+
+/**
+  * @brief  Enable or disable the clock for the specified USART peripheral.
+  *
+  * @param  pUSARTx Pointer to the USART peripheral base address.
+  *
+  * @param  State ENABLE to enable clock, DISABLE to disable clock.
+  *
+  * @retval None
+  */
+void USART_PeriClockControl(USART_TypeDef *pUSARTx, uint8_t State)
+{
+  if (State == ENABLE)
+  {
+    if (pUSARTx == USART1)
+    {
+      USART1_CLK_EN();
+    }else if (pUSARTx == USART2)
+    {
+      USART2_CLK_EN();
+    }else if (pUSARTx == USART3)
+    {
+      USART3_CLK_EN();
+    }else if (pUSARTx == UART4)
+    {
+      UART4_CLK_EN();
+    }else if (pUSARTx == UART5)
+    {
+      UART5_CLK_EN();
+    }else {
+      USART6_CLK_EN();
+    }
+  }else {
+    if (pUSARTx == USART1)
+    {
+      USART1_CLK_DIS();
+    }else if (pUSARTx == USART2)
+    {
+      USART2_CLK_DIS();
+    }else if (pUSARTx == USART3)
+    {
+      USART3_CLK_DIS();
+    }else if (pUSARTx == UART4)
+    {
+      UART4_CLK_DIS();
+    }else if (pUSARTx == UART5)
+    {
+      UART5_CLK_DIS();
+    }else {
+      USART6_CLK_DIS();
+    }
+  }
+}
+
+/**
+  * @brief  Initializes the UART mode according to the specified parameters in
+  *         the UART_InitTypeDef and create the associated handle.
+  *
+  * @param  huart  Pointer to a UART_HandleTypeDef structure that contains
+  *                the configuration information for the specified UART module.
+  *
+  * @retval None
+  */
+void USART_Init(USART_HandleTypeDef *husart)
+{
+	uint32_t tempreg = 0;
+
+	/******************************** Configuration of CR1******************************************/
+
+	// Enable clock
+	USART_PeriClockControl(husart->pUSARTx, ENABLE);
+
+	// Enable USART Tx and Rx according to the USART_Mode configuration item
+	if (husart->Init.Mode == USART_MODE_TX)
+	{
+		// Enable Tx mode
+		tempreg |=  (1 << USART_CR1_TE);
+	}else if (husart->Init.Mode == USART_MODE_RX)
+	{
+		// Enable Rx mode
+		tempreg |= (1 << USART_CR1_RE);
+	}else {
+		// enable Tx and Rx
+		tempreg |= (1 << USART_CR1_TE) | (1 << USART_CR1_RE);
+	}
+
+	// Configure word length
+	tempreg |= husart->Init.WordLength << USART_CR1_M;
+
+	// Configurate of parity control
+	if (husart->Init.Parity == USART_PARITY_EVEN)
+	{
+		// enable parity control
+		tempreg |= (1 << USART_CR1_PCE);
+
+		//Implement the code to enable EVEN parity
+		//Not required because by default EVEN parity will be selected once you enable the parity control
+	}else if (husart->Init.Parity == USART_PARITY_ODD)
+	{
+		// enable parity control
+		tempreg |= (1 << USART_CR1_PCE);
+
+		//Implement the code to enable ODD parity
+		tempreg |= (1 << USART_CR1_PS);
+	}
+
+	// Configure over sampling
+	tempreg |= husart->Init.OverSampling << USART_CR1_OVER8;
+
+	// Program the CR1 register
+	husart->pUSARTx->CR1 = tempreg;
+
+	/******************************** Configuration of CR2******************************************/
+	tempreg = 0;
+
+	// Configure the number of stop bits
+	tempreg |= husart->Init.StopBits << USART_CR2_STOP;
+
+	// prgoram CR2 register
+	husart->pUSARTx->CR2 = tempreg;
+
+	/******************************** Configuration of CR3******************************************/
+	tempreg = 0;
+
+	// Configurate of USART hardware flow control
+	if (husart->Init.HwFlowCtl == USART_HWCONTROL_CTS)
+	{
+		// Enable CTS flow control
+		tempreg |= (1 << USART_CR3_CTSE);
+	}else if (husart->Init.HwFlowCtl == USART_HWCONTROL_RTS)
+	{
+		// Enable RTS flow control
+		tempreg |= (1 << USART_CR3_RTSE);
+	}else if (husart->Init.HwFlowCtl == USART_HWCONTROL_RTS_CTS)
+	{
+		// Enable CTS and RTS
+		tempreg |= (1 << USART_CR3_CTSE) | (1 << USART_CR3_RTSE);
+	}
+
+	 // program CR3 register
+	husart->pUSARTx->CR3 = tempreg;
+
+	/******************************** Configuration of BRR(Baudrate register)******************************************/
+
+	// Configure the baud rate
+	USART_SetBaudRate(husart->pUSARTx, husart->Init.BaudRate);
+
+}
+
+/**
+  * @brief  Set the baud rate for USART
+  *
+  * @param  pUSARTx pointer to a USART_TypeDef structure that contains
+  *               the configuration information for pUSARTx module.
+  *
+  * @param  BaudRate Desired baud rate (e.g., 9600, 115200).
+  *
+  * @retval None
+  */
+void USART_SetBaudRate(USART_TypeDef *pUSARTx, uint32_t BaudRate)
+{
+	// variable to hold the APB clock
+	uint32_t PCLKx;
+
+	uint32_t usartdiv;
+
+	// variable to hold Mantissa and Fraction values
+	uint32_t Mantissa, Fraction;
+
+	uint32_t tempreg = 0;
+
+	// Get the value of APB bus clock into the variable PCLKx
+	if (pUSARTx == USART1 || pUSARTx == USART6)
+	{
+		// USART1 and USART6 are hanging on APB2 bus
+		PCLKx = RCC_GetPCLK2Value();
+	}else {
+		// USART2, USART3, UART4 and UART5 are hanging on APB1 bus
+		PCLKx = RCC_GetPCLK1Value();
+	}
+
+	// check for OVER8 bit
+	if (pUSARTx->CR1 & (1<< USART_CR1_OVER8))
+	{
+		// OVER8 = 1, over sampling by 8
+		usartdiv = ((25 * PCLKx) / (2 * BaudRate));
+	}else {
+		// over sampling by 16
+		usartdiv = ((25 * PCLKx) / (4 * BaudRate));
+	}
+
+	// Calculation Mantissa part
+	Mantissa = usartdiv / 100;
+
+	 //Place the Mantissa part in appropriate bit position refer to USART_BRR
+	tempreg |= Mantissa << 4;
+
+	// Extract the Fraction part
+	Fraction = (usartdiv - (Mantissa * 100));
+
+	// Calculation Fraction part
+	if (pUSARTx->CR1 & (1<< USART_CR1_OVER8))
+	{
+		// OVER8 = 1, over sampling by 8
+		Fraction = (((Fraction * 8) + 50) / 100) & ((uint8_t)0x07);
+	}else {
+		// over sampling by 16
+		Fraction = (((Fraction * 16) + 50) / 100) & ((uint8_t)0x0F);
+	}
+
+	//Place the Fraction part in appropriate bit position refer to USART_BRR
+	tempreg |= Fraction;
+
+	// program BRR
+	pUSARTx->BRR = tempreg;
+}
+
+/**
+  * @brief  De-Initialize the USART peripheral.
+  *
+  * @param  pUSARTx pointer to a USART_TypeDef structure that contains
+  *               the configuration information for pUSARTx module.
+  *
+  * @retval None
+  */
+void USART_DeInit(USART_TypeDef *pUSARTx)
+{
+	if (pUSARTx == USART1)
+	{
+		USART1_REG_RESET();
+	}else if (pUSARTx == USART2)
+	{
+		USART2_REG_RESET();
+	}else if (pUSARTx == USART3)
+	{
+		USART3_REG_RESET();
+	}else if (pUSARTx == UART4)
+	{
+		UART4_REG_RESET();
+	}else if (pUSARTx == UART5)
+	{
+		UART5_REG_RESET();
+	}else {
+		USART6_REG_RESET();
+	}
+}
+
+/**
+  * @brief  Sends an amount of data in blocking mode.
+  *
+  * @note   When UART parity is not enabled (PCE = 0), and Word Length is configured to 9 bits (M1-M0 = 01),
+  *         the sent data is handled as a set of u16. In this case, Size must indicate the number
+  *         of u16 provided through pTxBuffer.
+  *
+  * @param  huart Pointer to a UART_HandleTypeDef structure that contains
+  *               the configuration information for the specified UART module.
+  *
+  * @param  pTxBuffer Pointer to data buffer (u8 or u16 data elements).
+  *
+  * @param  Len  Amount of data elements (u8 or u16) to be sent
+  *
+  * @retval None
+  */
+void USART_Transmit(USART_HandleTypeDef *husart, uint8_t *pTxBuffer, uint32_t Len)
+{
+	uint16_t *pdata16bits;
+
+	for(uint32_t i = 0; i < Len; i++)
+	{
+		// wait until TXE set
+		while (! USART_GetFlagStatus(husart->pUSARTx, USART_FLAG_TXE));
+
+
+		//Check the USART_Word_Length item for 9BIT or 8BIT in a frame
+		if (husart->Init.WordLength == USART_WORDLENGTH_9B)
+		{
+			//if 9BIT load the DR with 2bytes masking  the bits other than first 9 bits
+			pdata16bits = (uint16_t*)pTxBuffer;
+			husart->pUSARTx->DR = (*pdata16bits & (uint16_t)USART_9BIT_MASK);
+
+			// check parity control
+			if (husart->Init.Parity == USART_PARITY_NONE)
+			{
+				//No parity is used in this transfer , so 9bits of user data will be sent
+				//Implement the code to increment pTxBuffer twice
+				pTxBuffer += 2;
+			}else {
+				//Parity bit is used in this transfer . so 8bits of user data will be sent
+				//The 9th bit will be replaced by parity bit by the hardware
+				pTxBuffer++;
+			}
+		}else {
+			// This is 8bit data transfer
+			husart->pUSARTx->DR = (*pTxBuffer & (uint8_t)USART_8BIT_MASK);
+
+			//Implement the code to increment the buffer address
+			pTxBuffer++;
+		}
+	}
+	// wait until TC set
+	while (! USART_GetFlagStatus(husart->pUSARTx, USART_FLAG_TC));
+}
+
+/**
+  * @brief  Receives an amount of data in blocking mode.
+  *
+  * @note   When UART parity is not enabled (PCE = 0), and Word Length is configured to 9 bits (M1-M0 = 01),
+  *         the received data is handled as a set of u16. In this case, Size must indicate the number
+  *         of u16 available through pRxBuffer.
+  *
+  * @param  huart Pointer to a UART_HandleTypeDef structure that contains
+  *               the configuration information for the specified UART module.
+  *
+  * @param  pRxBuffer Pointer to data buffer (u8 or u16 data elements).
+  *
+  * @param  Len  Amount of data elements (u8 or u16) to be received.
+  *
+  * @retval None
+  */
+void USART_Receive(USART_HandleTypeDef *husart, uint8_t *pRxBuffer, uint32_t Len)
+{
+	for (uint32_t i = 0; i < Len; i++) {
+		// wait until RXNE set
+		while (! USART_GetFlagStatus(husart->pUSARTx, USART_FLAG_RXNE));
+
+		// check word length(9 or 8 bit)
+		if (husart->Init.WordLength == USART_WORDLENGTH_9B)
+		{
+			// 9 bit data in a frame
+
+			// check parity control
+			if (husart->Init.Parity == USART_PARITY_NONE)
+			{
+				//No parity is used , so all 9bits will be of user data
+				*((uint16_t*)pRxBuffer) = (husart->pUSARTx->DR & (uint16_t)USART_9BIT_MASK);
+
+				// Increment pRxBuffer two times
+				pRxBuffer += 2;
+			}else {
+				//Parity is used, so 8bits will be of user data and 1 bit is parity
+				*pRxBuffer = (husart->pUSARTx->DR & (uint8_t)USART_8BIT_MASK);
+
+				// Increment pRxBuffer
+				pRxBuffer++;
+			}
+		}else {
+			// 8 bit data in a frame
+
+			// check parity control
+			if (husart->Init.Parity == USART_PARITY_NONE)
+			{
+				//No parity is used , so all 8bits will be of user data
+				*pRxBuffer = (husart->pUSARTx->DR & (uint8_t)USART_8BIT_MASK);
+			}else {
+				//Parity is used, so 7bits will be of user data and 1 bit is parity
+				*pRxBuffer = (husart->pUSARTx->DR & (uint8_t)USART_7BIT_MASK);
+			}
+			// Increment pRxBuffer
+			pRxBuffer++;
+		}
+	}
+}
+
+/**
+  * @brief  Sends an amount of data in non blocking mode.
+  *
+  * @note   When UART parity is not enabled (PCE = 0), and Word Length is configured to 9 bits (M1-M0 = 01),
+  *         the sent data is handled as a set of u16. In this case, Size must indicate the number
+  *         of u16 provided through pTxBuffer.
+  *
+  * @param  huart Pointer to a UART_HandleTypeDef structure that contains
+  *               the configuration information for the specified UART module.
+  *
+  * @param  pTxBuffer Pointer to data buffer (u8 or u16 data elements).
+  *
+  * @param  Len  Amount of data elements (u8 or u16) to be sent
+  *
+  * @retval None
+  */
+uint8_t USART_Transmit_IT(USART_HandleTypeDef *husart, uint8_t *pTxBuffer, uint32_t Len)
+{
+	uint8_t txstate = husart->TxState;
+
+	if(txstate != USART_STATE_BUSY_TX)
+	{
+		husart->TxLen = Len;
+		husart->pTxBuffPtr = pTxBuffer;
+		husart->TxState = USART_STATE_BUSY_TX;
+
+		//Implement the code to enable interrupt for TXE
+		husart->pUSARTx->CR1 |= ( 1 << USART_CR1_TXEIE);
+
+		//Implement the code to enable interrupt for TC
+		husart->pUSARTx->CR1 |= ( 1 << USART_CR1_TCIE);
+	}
+
+	return txstate;
+}
+
+/**
+  * @brief  Receives an amount of data in non blocking mode.
+  *
+  * @note   When UART parity is not enabled (PCE = 0), and Word Length is configured to 9 bits (M1-M0 = 01),
+  *         the received data is handled as a set of u16. In this case, Size must indicate the number
+  *         of u16 available through pRxBuffer.
+  *
+  * @param  huart Pointer to a UART_HandleTypeDef structure that contains
+  *               the configuration information for the specified UART module.
+  *
+  * @param  pRxBuffer Pointer to data buffer (u8 or u16 data elements).
+  *
+  * @param  Size  Amount of data elements (u8 or u16) to be received.
+  *
+  * @retval Len
+  */
+uint8_t USART_Receive_IT(USART_HandleTypeDef *husart, uint8_t *pRxBuffer, uint32_t Len)
+{
+	uint8_t rxstate = husart->RxState;
+
+	if(rxstate != USART_STATE_BUSY_RX)
+	{
+		husart->RxLen = Len;
+		husart->pRxBuffPtr = pRxBuffer;
+		husart->RxState = USART_STATE_BUSY_RX;
+
+		(void)husart->pUSARTx->DR;
+
+		//Implement the code to enable interrupt for RXNE
+		husart->pUSARTx->CR1 |= ( 1 << USART_CR1_RXNEIE);
+	}
+	return rxstate;
+}
+
+/**
+  * @brief  Enables or disables a specific interrupt in the NVIC.
+  *
+  * @param  IRQNumber IRQ number for the EXTI line or peripheral interrupt.
+  *         (e.g., EXTI0_IRQn, EXTI1_IRQn, USART1_IRQn, etc.)
+  *
+  * @param  State ENABLE or DISABLE.
+  *
+  * @retval None
+  */
+void USART_IRQInterruptConfig(uint8_t IRQNumber, uint8_t State)
+{
+	if (State == ENABLE)
+	{
+		if (IRQNumber <= 31)
+		{
+			// program ISER0 register
+			*NVIC_ISER0 |= (1 << IRQNumber);
+		}else if (IRQNumber > 31 && IRQNumber < 64)
+		{
+			*NVIC_ISER1 |= (1 << (IRQNumber % 32));
+		}else if (IRQNumber >= 64 && IRQNumber < 96)
+		{
+			*NVIC_ISER2 |= (1 << (IRQNumber % 64));
+		}
+	}else {
+		if (IRQNumber <= 31)
+		{
+			*NVIC_ICER0 |= (1 << IRQNumber);
+		}else if (IRQNumber > 31 && IRQNumber < 64)
+		{
+			*NVIC_ICER1 |= (1 << (IRQNumber % 32));
+		}else if (IRQNumber >= 64 && IRQNumber < 96)
+		{
+			*NVIC_ICER2 |= (1 << (IRQNumber % 64));
+		}
+	}
+}
+
+/**
+  * @brief  Sets the priority of a given interrupt in the NVIC.
+  *
+  * @param  IRQNumber IRQ number to configure (e.g., EXTI0_IRQn).
+  *
+  * @param  IRQPriority Priority level (0 = highest, larger = lower priority).
+  *
+  * @retval None
+  */
+void USART_IRQPriorityConfig(uint8_t IRQNumber, uint32_t IRQPriority)
+{
+	// Each NVIC_IPR register holds 4 IRQs, and each priority field is 8 bits wide (only top bits used)
+	uint8_t ipr_index = IRQNumber / 4; // Which IPR register
+	uint8_t ipr_section = IRQNumber % 4; // Which section inside the IPR register
+
+	uint8_t shift_amount = (8 * ipr_section) + (8 - NO_PR_BITS_IMPLEMENTED);
+	*(NVIC_PR_BASE + ipr_index) |= (IRQPriority << shift_amount);
+}
+
+/**
+  * @brief  This function handles USART interrupt request.
+  *
+  * @param  huart  Pointer to a UART_HandleTypeDef structure that contains
+  *                the configuration information for the specified UART module.
+  *
+  * @retval None
+  */
+void USART_IRQHandler(USART_HandleTypeDef *husart)
+{
+	  uint32_t isrflags, cr1its, cr3its;
+	  uint16_t *pdata16bits;
+
+	  /*************************Check for TC flag ********************************************/
+
+	  // check TC
+	  isrflags = husart->pUSARTx->SR & (1 << USART_SR_TC);
+
+	  // check TCIE
+	  cr1its = husart->pUSARTx->CR1 & (1 << USART_CR1_TCIE);
+
+	  if (isrflags && cr1its) {
+		  // handle TC
+		  USART_EndTxTransfer(husart);
+	  }
+
+	  /*************************Check for TXE flag ********************************************/
+
+	  // check TXE
+	  isrflags = husart->pUSARTx->SR & (1 << USART_SR_TXE);
+
+	  // check TXEIE
+	  cr1its = husart->pUSARTx->CR1 & (1 << USART_CR1_TXEIE);
+
+	  if (isrflags && cr1its)
+	  {
+		  // handle TXE
+		  USART_TxTransfer(husart);
+
+	  }
+}
+
+/**
+  * @brief  End ongoing Tx transfer on UART peripheral (following error detection or Transmit completion).
+  *
+  * @param  huart UART handle.
+  *
+  * @retval None
+  */
+static void USART_EndTxTransfer(USART_HandleTypeDef *huart)
+{
+	//close transmission and call application callback if TxLen is zero
+	if ( huart->TxState == USART_STATE_BUSY_TX)
+	{
+		//Check the TxLen . If it is zero then close the data transmission
+		if(! huart->TxLen )
+		{
+			//Implement the code to clear the TC flag
+			huart->pUSARTx->SR &= ~( 1 << USART_SR_TC);
+
+			//Implement the code to clear the TCIE control bit
+			huart->pUSARTx->CR1 &= ~( 1 << USART_CR1_TCIE);
+
+			//Reset the application state
+			huart->TxState = USART_STATE_READY;
+
+			//Reset Buffer address to NULL
+			huart->pTxBuffPtr = NULL;
+
+			//Reset the length to zero
+			huart->TxLen = 0;
+
+			//Call the application call back with event USART_EVENT_TX_COMPLETE
+			USART_ApplicationEventCallback(huart, USART_EVENT_TX_COMPLETE);
+		}
+	}
+}
+
+/**
+  * @brief  Tx transfer on UART peripheral
+  *
+  * @param  huart UART handle.
+  *
+  * @retval None
+  */
+static void USART_TxTransfer(USART_HandleTypeDef *huart)
+{
+	if (huart->)
+}
+/*
+ * Other Peripheral Control APIs
+ */
+
+uint8_t USART_GetFlagStatus(USART_TypeDef *pUSARTx, uint8_t FlagName);
+void USART_ClearFlag(USART_TypeDef *pUSARTx, uint16_t FlagName);
+void USART_PeripheralControl(USART_TypeDef *pUSARTx, uint8_t State);
+
+
+
+/*
+ * Application Callbacks
+ */
+void USART_ApplicationEventCallback(USART_HandleTypeDef *husart, uint8_t AppEvent);

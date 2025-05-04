@@ -1,0 +1,55 @@
+/*
+ * stm32f407xx_usart.c
+ *
+ *  Created on: May 3, 2025
+ *      Author: nhduong
+ */
+
+#include <stm32f407xx_usart.h>
+
+/**
+  * @brief  Enable or disable the clock for the specified USART peripheral.
+  *
+  * @param  pUSARTx Pointer to the USART peripheral base address.
+  *
+  * @param  State ENABLE to enable clock, DISABLE to disable clock.
+  *
+  * @retval None
+  */
+void USART_PeriClockControl(USART_TypeDef *pUSARTx, uint8_t State);
+
+/*
+ * Init and De-init
+ */
+void USART_Init(USART_HandleTypeDef *husart);
+void USART_DeInit(USART_HandleTypeDef *husart);
+
+/*
+ * Data Transmit and Receive
+ */
+void USART_Transmit(USART_HandleTypeDef *husart, uint8_t *pTxBuffer, uint32_t Len);
+void USART_Receive(USART_HandleTypeDef *husart, uint8_t *pRxBuffer, uint32_t Len);
+uint8_t USART_Transmit_IT(USART_HandleTypeDef *husart, uint8_t *pTxBuffer, uint32_t Len);
+uint8_t USART_Receive_IT(USART_HandleTypeDef *husart, uint8_t *pRxBuffer, uint32_t Len);
+
+/*
+ * IRQ Configuration and ISR handling
+ */
+void USART_IRQInterruptConfig(uint8_t IRQNumber, uint8_t State);
+void USART_IRQPriorityConfig(uint8_t IRQNumber, uint32_t IRQPriority);
+void USART_IRQHandler(USART_HandleTypeDef *husart);
+
+/*
+ * Other Peripheral Control APIs
+ */
+
+uint8_t USART_GetFlagStatus(USART_TypeDef *pUSARTx, uint8_t FlagName);
+void USART_ClearFlag(USART_TypeDef *pUSARTx, uint16_t FlagName);
+void USART_PeripheralControl(USART_TypeDef *pUSARTx, uint8_t State);
+void USART_SetBaudRate(USART_TypeDef *pUSARTx, uint32_t BaudRate);
+
+
+/*
+ * Application Callbacks
+ */
+void USART_ApplicationEventCallback(USART_HandleTypeDef *husart, uint8_t AppEvent);
